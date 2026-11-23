@@ -15,8 +15,8 @@
 
 ## Private events
 
-- Every event is private and has its own invite link. A verified guest can access an event after redeeming that event’s link.
-- Use a separate, unguessable invite token. After Firebase verification, redeem the token on the server and save event membership for that Firebase user ID and event.
+- Every event is private and uses event-specific invite links. Each link has a set expiration. The host can generate a new link. A live, unexpired link allows verified guests to redeem it.
+- Use a separate, unguessable token for each invite link. After Firebase verification, check the token and its expiration on the server before saving event membership for that Firebase user ID and event. Expiring an invite link leaves memberships and RSVPs already established through it in place.
 - Check event membership and RSVP status on the server before returning invite-only information, searching Spotify for an event, or accepting a song request. Exact event details and new song requests require a current confirmed RSVP. If the host removes a guest, revoke the guest’s access to exact event details immediately and enforce the revocation on the server. Homepage listings do not grant membership.
 - The homepage may list events a guest cannot access. Show a locked card with the event name, banner, and basic listing information. Serve these cards from a limited set of listing fields. Apply the event-detail access rule to the exact date and time, venue or address, and other private event information. Guests who have yet to RSVP or are waitlisted can access the event page and RSVP status after redeeming the invite.
 

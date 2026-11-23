@@ -2,6 +2,12 @@
 
 **Draft.** A verified guest redeems an event invite to become a member. The RSVP determines whether that member can see private details, read announcements, or request songs. Posting an announcement additionally requires an event-specific grant from the host. The server checks these conditions on each request. [Confirmed product rules](rules.md)
 
+## Confirmed decisions
+
+- Use Firebase Authentication on the existing Blaze plan. Guests can sign in with Google or verify their phone by SMS.
+- Use Cloud Firestore for event data, including invite redemption, membership, and RSVP transactions.
+- Give each event invite link a set expiration. Hosts can generate new links, and verified guests can redeem live links until they expire.
+
 ## Access by event state
 
 Each guest row assumes a verified Firebase session. “Event page” means the RSVP and status view. The locked homepage card is available to anyone who can see the listing.
@@ -23,12 +29,12 @@ Exact details include the time, location, and private reference images. The serv
 | --- | --- |
 | Host account | A Firebase user ID with the ability to host, assigned through the owner's separate host invite flow. |
 | Event | The owning host, locked-card listing fields, private details, capacity, and song request settings. The event has a stable URL for normal navigation and notifications. |
-| Event invite | An event-scoped token that the server validates during redemption. One shared link can admit multiple verified users. |
+| Event invite | An event-scoped token with an expiration. One live shared link can admit multiple verified users. |
 | Event participant | One record per event and Firebase user ID. It holds membership status, current RSVP status, and the waitlist position for an active waitlisted RSVP. A canceled or removed record retains enough state to enforce the re-entry policy. |
 | Event posting grant | A host-managed grant tied to a confirmed RSVP for one event and one guest. The proposal is to end the grant when that RSVP ends. |
 | Event announcement | The event, author, content, and publication time. Keep existing posts available to confirmed attendees after the author loses access. |
 
-The invite flow sends signed-out guests through Google sign-in or SMS verification and resumes redemption afterward. The server verifies the Firebase session, then validates the token and creates or loads the participant record. Repeat redemption by an active member returns the existing membership and preserves the RSVP and queue position. Redirect to the ordinary event URL after redemption. Keep the invite token out of ordinary URLs, notification content, and application logs.
+The invite flow sends signed-out guests through Google sign-in or SMS verification and resumes redemption afterward. The server verifies the Firebase session, then validates the token and checks its expiration against server time before creating or loading the participant record. Repeat redemption by an active member returns the existing membership and preserves the RSVP and queue position. Redirect to the ordinary event URL after redemption. Keep the invite token out of ordinary URLs, notification content, and application logs.
 
 Build listing, RSVP, and private-detail responses from explicit field sets. Check event ownership for host actions. For guest actions, read current membership and RSVP state, plus the specific grant or setting required by the operation. Keep revocation-sensitive responses out of shared caches, and authorize private media requests when they arrive. Spotify search for an event follows the server-side event access checks. Song submission also checks whether the host has closed requests and whether the deadline has passed, using server time.
 
@@ -48,6 +54,7 @@ Record notification work alongside the state change and send it after commit, wi
 ## First acceptance checks
 
 - A verified user without membership sees only the listing when opening the ordinary URL. Redeeming the invite twice establishes one membership and leaves any active RSVP untouched.
+- An expired invite link grants no membership. A new live link can be redeemed, and a guest who redeemed the expired link earlier can still use their existing membership through the ordinary event URL.
 - With one remaining spot and two simultaneous RSVP submissions, one is confirmed and the other is waitlisted. When the confirmed guest cancels, the longest-waiting guest is promoted and can read prior announcements.
 - A confirmed guest without a grant can read the board. Once granted permission, they can publish for that event. After revocation, a direct publish request fails even from a page opened before the revocation.
 - After a cancellation or host removal, direct requests for private event details and board content fail. A guest's canceled song requests no longer count toward event totals, and tracks already on Spotify remain on the playlist.
