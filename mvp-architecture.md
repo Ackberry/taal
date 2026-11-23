@@ -39,6 +39,7 @@ Exact details include the time, location, and private reference images. The serv
 | Event participant | One record per event and Firebase user ID. It holds membership status, current RSVP status, and the waitlist position for an active waitlisted RSVP. A canceled or removed record retains enough state to enforce the re-entry policy. |
 | Event permission grant | A host-managed grant for one event, attendee account, and permission. The attendee needs a current confirmed RSVP to use a posting or editing grant. |
 | Event announcement | The event, author, content, and publication time. Keep existing posts available to confirmed attendees after the author loses access. |
+| Event audit entry | The event, acting account, action, and timestamp for an announcement publication or event edit. Retain the entry after the actor cancels. |
 
 Redeeming a guest link again returns existing membership and preserves the RSVP and queue position. Redirect to the ordinary event URL after redemption. Keep the invite token out of ordinary URLs, notification content, and application logs.
 
@@ -48,14 +49,17 @@ Build listing, RSVP, and private-detail responses from explicit field sets. Chec
 
 Use one transaction boundary per event for operations that change attendance. A new RSVP, a cancellation, a host add or removal, and a capacity edit all use the same capacity and waitlist logic. Assign a stable queue position when a guest joins the waitlist. The transaction checks current membership and active RSVP state, fills open spots in queue order, and confirms or waitlists the incoming RSVP. Removing the capacity limit confirms everyone waiting. A capacity decrease that needs removals saves the selected removals and the new limit together, or rejects the whole change.
 
-Cancellation revokes access to the event and board, deletes the guest's requests, and removes their contributions to request counts. Tracks already on Spotify stay on the playlist. Host removal revokes access to that event and lets the next eligible guest move up if a confirmed spot opens. A proposed starting point for manual additions is to add an existing Firebase user as a confirmed participant through the same capacity transaction. Serialize song requests, announcement publication, and delegated edits with changes to the RSVP and grants they depend on so an action ordered after revocation fails. [Deferred Spotify decision](https://github.com/Ackberry/taal/issues/1)
+Cancellation revokes access to the event and board, removes posting and editing grants, deletes the guest's requests, and removes their contributions to request counts. Tracks already on Spotify stay on the playlist. [Deferred Spotify decision](https://github.com/Ackberry/taal/issues/1)
+
+Save an audit entry alongside each announcement publication or event edit. Keep the published announcements, saved edits, and audit entries when the actor cancels. The same account can redeem its original permission invite again while it is live. Record the selected grants for the new attendance, and require a fresh confirmed RSVP before they can be used.
+
+Host removal revokes access to that event and lets the next eligible guest move up if a confirmed spot opens. A proposed starting point for manual additions is to add an existing Firebase user as a confirmed participant through the same capacity transaction. Serialize song requests, announcement publication, and delegated edits with changes to the RSVP and grants they depend on so an action ordered after revocation fails.
 
 Record notification work alongside the state change and send it after commit, with retries keyed to the notification and recipient. For a published announcement, record which guests were confirmed and had contact email at publication. Use the latest saved contact email for delivery. Use the ordinary event URL and the limited email content specified in the rules. [Notification rules](rules.md#rsvp-guest-confirmation-and-event-updates)
 
 ## Decisions to confirm
 
-- **Re-entry after cancellation or removal.** Proposed behavior gives canceled guests a fresh RSVP through the invite, with a new waitlist position if the event is full. Removed guests need the host to add them back. Opening an old event page link leaves access revoked in either case. [GitHub issue #6](https://github.com/Ackberry/taal/issues/6)
-- **Posting grants after an RSVP ends.** Proposed behavior ends the grant on cancellation or removal. If the guest later confirms again, the host can grant permission again. [GitHub issue #5](https://github.com/Ackberry/taal/issues/5)
+- **Re-entry through shared links and after host removal.** Decide whether a canceled guest can rejoin through a shared guest link and whether host-removed guests must be added back by the host. Include the treatment of permission invites after host removal. [GitHub issue #6](https://github.com/Ackberry/taal/issues/6)
 
 ## First acceptance checks
 
@@ -66,5 +70,6 @@ Record notification work alongside the state change and send it after commit, wi
 - With one remaining spot and two simultaneous RSVP submissions, one is confirmed and the other is waitlisted. When the confirmed guest cancels, the longest-waiting guest is promoted and can read prior announcements.
 - A confirmed guest without a grant can read the board. Once granted permission, they can publish for that event. After revocation, a direct publish request fails even from a page opened before the revocation.
 - A recipient with an editing grant follows the usual waitlist rules. Once confirmed, they appear on the attendee list and can edit event details. A later loss of confirmation immediately blocks editing.
+- When a guest with posting or editing permission cancels, their grants are removed immediately and their published posts, edits, and audit entries are retained. Rejoining through the original live permission invite restores the selected permissions once a new RSVP is confirmed. A fresh RSVP alone leaves the guest with standard attendee access.
 - After a cancellation or host removal, direct requests for private event details and board content fail. A guest's canceled song requests no longer count toward event totals, and tracks already on Spotify remain on the playlist.
 - Announcement notifications go to eligible recipients as of publication. The email carries the ordinary event URL and omits private details, announcement text, and invite tokens.
