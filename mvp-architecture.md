@@ -36,7 +36,7 @@ Exact details include the time, location, and private reference images. The serv
 | Host account | A Firebase user ID with the ability to host, assigned through the owner's separate host invite flow. |
 | Event | The owning host, locked-card listing fields, private details, capacity, and song request settings. The event has a stable URL for normal navigation and notifications. |
 | Event invite | An event-scoped token with an expiration. A guest invite admits verified guests. A permission invite identifies the intended account and its selected permissions. |
-| Event participant | One record per event and Firebase user ID. It holds membership status, current RSVP status, and the waitlist position for an active waitlisted RSVP. A canceled record can support re-entry. A host-removed record stays on the event’s block list until the event host clears it there. |
+| Event participant | One record per event and Firebase user ID. It holds membership status, current RSVP status, and the waitlist position for an active waitlisted RSVP. A canceled guest can rejoin by redeeming a live invite and submitting a new RSVP. A host-removed record stays on the event’s block list until the event host clears it there. |
 | Event permission grant | A host-managed grant for one event, attendee account, and permission. The attendee needs a current confirmed RSVP to use a posting or editing grant. |
 | Event announcement | The event, author, content, and publication time. Keep existing posts available to confirmed attendees after the author loses access. |
 | Event audit entry | The event, acting account, action, and timestamp for an announcement publication or event edit. Retain the entry after the actor cancels. |
@@ -49,7 +49,7 @@ Build listing, RSVP, and private-detail responses from explicit field sets. Chec
 
 Use one transaction boundary per event for operations that change attendance. A new RSVP, a cancellation, a host add or removal, and a capacity edit all use the same capacity and waitlist logic. Assign a stable queue position when a guest joins the waitlist. The transaction checks current membership and active RSVP state, fills open spots in queue order, and confirms or waitlists the incoming RSVP. Removing the capacity limit confirms everyone waiting. A capacity decrease that needs removals saves the selected removals and the new limit together, or rejects the whole change.
 
-Cancellation revokes access to the event and board, removes posting and editing grants, deletes the guest's requests, and removes their contributions to request counts. Tracks already on Spotify stay on the playlist. [Deferred Spotify decision](https://github.com/Ackberry/taal/issues/1)
+Cancellation revokes access to the event and board, removes posting and editing grants, deletes the guest's requests, and removes their contributions to request counts. The guest can redeem a live shared invite and submit a fresh RSVP under the usual capacity and waitlist rules. Assign a new waitlist position if needed. Tracks already on Spotify stay on the playlist. [Deferred Spotify decision](https://github.com/Ackberry/taal/issues/1)
 
 Save an audit entry alongside each announcement publication or event edit. Keep the published announcements, saved edits, and audit entries when the actor cancels. The same account can redeem its original permission invite again while it is live. Record the selected grants for the new attendance, and require a fresh confirmed RSVP before they can be used.
 
@@ -58,10 +58,6 @@ Host removal revokes access and grants and blocks the account for that event in 
 A proposed starting point for manual additions is to add an existing Firebase user as a confirmed participant through the same capacity transaction. Serialize song requests, announcement publication, and delegated edits with changes to the RSVP and grants they depend on so an action ordered after revocation fails.
 
 Record notification work alongside the state change and send it after commit, with retries keyed to the notification and recipient. For a published announcement, record which guests were confirmed and had contact email at publication. Use the latest saved contact email for delivery. Use the ordinary event URL and the limited email content specified in the rules. [Notification rules](rules.md#rsvp-guest-confirmation-and-event-updates)
-
-## Decisions to confirm
-
-- **Re-entry after cancellation.** Decide whether a canceled guest can rejoin through a shared guest link. [GitHub issue #6](https://github.com/Ackberry/taal/issues/6)
 
 ## First acceptance checks
 
@@ -72,6 +68,7 @@ Record notification work alongside the state change and send it after commit, wi
 - With one remaining spot and two simultaneous RSVP submissions, one is confirmed and the other is waitlisted. When the confirmed guest cancels, the longest-waiting guest is promoted and can read prior announcements.
 - A confirmed guest without a grant can read the board. Once granted permission, they can publish for that event. After revocation, a direct publish request fails even from a page opened before the revocation.
 - A recipient with an editing grant follows the usual waitlist rules. Once confirmed, they appear on the attendee list and can edit event details. A later loss of confirmation immediately blocks editing.
+- A guest who cancels can redeem a live guest link and RSVP again. If the event is full, the guest joins at the end of the existing waitlist.
 - When a guest with posting or editing permission cancels, their grants are removed immediately and their published posts, edits, and audit entries are retained. Rejoining through the original live permission invite restores the selected permissions once a new RSVP is confirmed. A fresh RSVP alone leaves the guest with standard attendee access.
 - After host removal, both shared and permission links fail for that account at that event. Repeated attempts are rate-limited across links and generate no host notification. Only the host can clear the block from the event’s block list.
 - After the host clears a block, redeeming a live guest link gives standard guest access. Redeeming a still-live permission link issued before removal records its selected grants, which the intended account can use after a fresh RSVP is confirmed.
