@@ -55,7 +55,7 @@ Save an audit entry alongside each announcement publication or event edit. Keep 
 
 Host removal revokes access and grants and blocks the account for that event in the same transaction. If a confirmed spot opens, the next eligible guest moves up. Only the host can clear the block through the event’s block list. An unblocked account can redeem a live invite and submit a fresh RSVP. A guest link gives standard membership. A permission invite, including a still-live link issued before removal, records the selected grants for the intended account. Those grants become usable when the new RSVP is confirmed.
 
-A proposed starting point for manual additions is to add an existing Firebase user as a confirmed participant through the same capacity transaction. Serialize song requests, announcement publication, and delegated edits with changes to the RSVP and grants they depend on so an action ordered after revocation fails.
+Manual additions confirm a participant with an existing verified Taal account through the same capacity transaction. Identify the participant by their Firebase user ID. Serialize song requests, announcement publication, and delegated edits with changes to the RSVP and grants they depend on so an action ordered after revocation fails.
 
 Record notification work alongside the state change and send it after commit, with retries keyed to the notification and recipient. For a published announcement, record which guests were confirmed and had contact email at publication. Use the latest saved contact email for delivery. Use the ordinary event URL and the limited email content specified in the rules. [Notification rules](rules.md#rsvp-guest-confirmation-and-event-updates)
 
@@ -65,6 +65,7 @@ Record notification work alongside the state change and send it after commit, wi
 - Two links for one event can be redeemed while both are live. When one expires, the other still works, and a guest who already redeemed the expired link can use their existing membership through the ordinary event URL.
 - Choosing **Guest** disables the permission controls. The server rejects a guest-link creation request that includes an elevated permission.
 - A verified account other than the intended recipient cannot redeem a permission invite. The intended recipient receives the selected permissions for that event.
+- A host can manually confirm an existing verified Taal account when capacity allows. An attempt to add someone without a verified account leaves the attendee list and available spots unchanged.
 - With one remaining spot and two simultaneous RSVP submissions, one is confirmed and the other is waitlisted. When the confirmed guest cancels, the longest-waiting guest is promoted and can read prior announcements.
 - A confirmed guest without a grant can read the board. Once granted permission, they can publish for that event. After revocation, a direct publish request fails even from a page opened before the revocation.
 - A recipient with an editing grant follows the usual waitlist rules. Once confirmed, they appear on the attendee list and can edit event details. A later loss of confirmation immediately blocks editing.
