@@ -5,6 +5,7 @@
 - Hosting is invite-only. The project owner decides who to invite as a host.
 - Each invited host connects their own Spotify account, creates and manages their own events, and syncs event playlists to their own Spotify account.
 - Send each invited host an invitation link by email.
+- Hosts can publish host-level announcements on their profiles. People who can view the host profile can read those announcements. Event RSVP status does not affect access to host-profile announcements.
 
 ## Guest access and verification
 
@@ -16,7 +17,7 @@
 
 - Every event is private and has its own invite link. A verified guest can access an event after redeeming that event’s link.
 - Use a separate, unguessable invite token. After Firebase verification, redeem the token on the server and save event membership for that Firebase user ID and event.
-- Check event membership on the server before returning invite-only information, searching Spotify for an event, or accepting a song request. Guests can view exact event details once their RSVP has been confirmed, and they retain access if they cancel that RSVP. If the host removes a guest, revoke the guest’s access to exact event details immediately and enforce the revocation on the server. Accept new song requests only from guests with a currently confirmed RSVP. Homepage listings do not grant membership.
+- Check event membership and RSVP status on the server before returning invite-only information, searching Spotify for an event, or accepting a song request. Exact event details and new song requests require a current confirmed RSVP. If the host removes a guest, revoke the guest’s access to exact event details immediately and enforce the revocation on the server. Homepage listings do not grant membership.
 - The homepage may list events a guest cannot access. Show a locked card with the event name, banner, and basic listing information. Serve these cards from a limited set of listing fields. Apply the event-detail access rule to the exact date and time, venue or address, and other private event information. Guests who have yet to RSVP or are waitlisted can access the event page and RSVP status after redeeming the invite.
 
 ## Guest song submissions
@@ -34,7 +35,7 @@
 - Hosts can optionally add a theme or dress code, last entry time, student or photo ID requirements, and a plus-one policy. They can also add directions, the entrance to use, shuttle or rideshare drop-off information, step-free access information, and a contact for event or accessibility questions. Which event filters to support is still open.
 - After a successful song request, show a confirmation with the event address and other details the host has provided. Show “TBA” for details the host has yet to announce, including the address.
 - Email is the primary channel for guest communications. Email confirmed guests who have an email address when their RSVP is confirmed and when the host changes attendee-facing details, such as the date, time, or address, including when a detail marked “TBA” is announced. Use SMS only for authentication and notifying guests who signed up by SMS when they are approved from the waitlist.
-- RSVP confirmation, event update, and announcement emails link directly to the event page using its ordinary URL. Exclude invite links, invite tokens, and sign-in links. Signed-out guests go through the normal sign-in flow, and Taal checks their event access before showing private content. Limit event information in emails to fields shown on the locked homepage card. Keep exact event details and announcement text on the event page.
+- RSVP confirmation, event update, and event announcement emails link directly to the event page using its ordinary URL. Exclude invite links, invite tokens, and sign-in links. Signed-out guests go through the normal sign-in flow, and Taal checks their event access before showing private content. Limit event information in emails to fields shown on the locked homepage card. Keep exact event details and announcement text on the event page.
 - Event update emails identify the event by its listing name and show only the labels of the fields that changed, such as “Updated: Location.” Exclude previous and new field values from the update summary. Direct guests to Taal to see the current details.
 - Guests who verified by SMS can join the waitlist when one is in use. Prompt them to add an email address for project information when their RSVP is confirmed, either after they are approved from the waitlist or when they are confirmed directly. Guests can skip the prompt. If they skip, show an alert saying they will receive no update notifications and should check the event page regularly for updates.
 - Guests signed in by SMS can add or change their contact email in settings. The email address requires no verification. Use the latest saved address for future email communications, including after a guest corrects an address they entered at RSVP.
@@ -44,13 +45,13 @@
 - Hosts can send the event invite link directly to guests so they can verify and RSVP themselves. All guests who use an invite link follow the same first-come, first-served RSVP and waitlist rules. Sending or redeeming a link does not reserve a spot or grant priority.
 - The event host can manually add or remove guests for their own event. Enforce capacity atomically on the server for manual additions too. When an event is full, the host must save a higher capacity before manually adding another guest.
 - To lower capacity below the confirmed guest count, the host must select enough confirmed guests to remove so the remaining count fits the new limit. Apply the selected removals and the new limit together in one atomic operation. If the remaining count would exceed the new limit, reject the change and show an error asking the host to select more guests.
-- Guests can cancel their RSVP. Delete their song requests for the event and remove their contributions to any shared request counts. A guest who cancels a confirmed RSVP retains access to the event details.
+- Guests can cancel their RSVP. Immediately revoke their access to the event and its announcement board, including through previously shared event page links. Delete their song requests for the event and remove their contributions to shared request counts. They can still read announcements on the host’s profile.
 - Keep tracks already on the linked Spotify playlist when a guest cancels, even if a track’s request count drops to zero. Implement this behavior for now. The decision about automatically removing tracks added through Taal is deferred. [GitHub issue #1](https://github.com/Ackberry/taal/issues/1)
 
 ## Event announcements
 
-- Each event has a message board. Only the event host can post announcements. Guests gain access to the board when their RSVP is confirmed. Waitlisted guests can read earlier announcements on the board after they are approved.
-- When the host publishes an announcement, notify guests who have a confirmed RSVP and an email address at the time of publication. Send a generic email saying there is a new announcement, using the link and content rules under [RSVP, guest confirmation, and event updates](#rsvp-guest-confirmation-and-event-updates). Guests can read the announcement and catch up on earlier posts in Taal after approval.
+- Each event has its own announcement board. The event host and guests the host authorizes to post can publish announcements for that event. Guest access to the board, including posting, requires a current confirmed RSVP. Waitlisted guests can read earlier announcements on the board after they are approved.
+- When the host or an authorized guest publishes an event announcement, notify guests who have a confirmed RSVP and an email address at the time of publication. Send a generic email saying there is a new announcement, using the link and content rules under [RSVP, guest confirmation, and event updates](#rsvp-guest-confirmation-and-event-updates). Guests can read the announcement and catch up on earlier posts in Taal after approval.
 
 ## Host approval and playlist creation
 
