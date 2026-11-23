@@ -33,8 +33,8 @@
 - Hosts can configure the event name, date and time, address, event photo, and description. Hosts can also attach additional reference images, such as outfit examples, an entrance photo, or a flyer.
 - Hosts can optionally add a theme or dress code, last entry time, student or photo ID requirements, and a plus-one policy. They can also add directions, the entrance to use, shuttle or rideshare drop-off information, step-free access information, and a contact for event or accessibility questions. Which event filters to support is still open.
 - After a successful song request, show a confirmation with the event address and other details the host has provided. Show “TBA” for details the host has yet to announce, including the address.
-- Email is the primary channel for guest communications. Send RSVP confirmations and event update notifications by email to confirmed guests with an email address. Use SMS only for authentication and notifying guests who signed up by SMS when they are approved from the waitlist.
-- RSVP confirmation, event update, and announcement emails contain a link to the signed-in event page. Keep exact event details and announcement text on that page, where Taal enforces event access rules.
+- Email is the primary channel for guest communications. Email confirmed guests who have an email address when their RSVP is confirmed and when the host changes attendee-facing details, such as the date, time, or address, including when a detail marked “TBA” is announced. Use SMS only for authentication and notifying guests who signed up by SMS when they are approved from the waitlist.
+- RSVP confirmation, event update, and announcement emails link directly to the event page using its ordinary URL. Exclude invite links, invite tokens, and sign-in links. Signed-out guests go through the normal sign-in flow, and Taal checks their event access before showing private content. Limit event information in emails to fields shown on the locked homepage card. Keep exact event details and announcement text on the event page.
 - Guests who verified by SMS can join the waitlist when one is in use. Prompt them to add an email address for project information when their RSVP is confirmed, either after they are approved from the waitlist or when they are confirmed directly. Guests can skip the prompt. If they skip, show an alert saying they will receive no update notifications and should check the event page regularly for updates.
 - Guests signed in by SMS can add or change their contact email in settings. The email address requires no verification. Use the latest saved address for future email communications, including after a guest corrects an address they entered at RSVP.
 - RSVP is a separate step. Guests can RSVP without requesting a song. Enforce confirmed RSVP status on the server before accepting a song request. Waitlisted guests become eligible when their RSVP is confirmed.
@@ -44,7 +44,7 @@
 ## Event announcements
 
 - Each event has a message board. Only the event host can post announcements. Guests gain access to the board when their RSVP is confirmed. Waitlisted guests can read earlier announcements on the board after they are approved.
-- When the host publishes an announcement, notify guests who have a confirmed RSVP and an email address at the time of publication. Send notifications by email only. Guests can catch up on earlier announcements in Taal after approval.
+- When the host publishes an announcement, notify guests who have a confirmed RSVP and an email address at the time of publication. Send notifications by email only, using the link and content rules under [RSVP, guest confirmation, and event updates](#rsvp-guest-confirmation-and-event-updates). Guests can catch up on earlier announcements in Taal after approval.
 
 ## Host approval and playlist creation
 
