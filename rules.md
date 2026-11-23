@@ -15,8 +15,10 @@
 
 ## Private events
 
-- Every event is private and uses event-specific invite links. Each link has a set expiration. The host can generate a new link. A live, unexpired link allows verified guests to redeem it.
-- Use a separate, unguessable token for each invite link. After Firebase verification, check the token and its expiration on the server before saving event membership for that Firebase user ID and event. Expiring an invite link leaves memberships and RSVPs already established through it in place.
+- Every event is private. The host can create multiple event-specific invite links that are active at the same time. Each link has its own expiration.
+- Give the host one interface for creating event invite links. Selecting **Guest** disables all elevated permission options and creates a shareable invite that grants event membership under the normal RSVP rules.
+- To delegate event permissions, the host selects the permissions and a specific recipient in the same interface. The server grants only the selected permissions for that event to the intended verified account. A guest still needs a current confirmed RSVP to use an announcement posting grant.
+- Use a separate, unguessable token for each link. After Firebase verification, check the token, its expiration, and any recipient restriction on the server before redeeming the invite. Expiring a link leaves memberships and RSVPs already established through it in place.
 - Check event membership and RSVP status on the server before returning invite-only information, searching Spotify for an event, or accepting a song request. Exact event details and new song requests require a current confirmed RSVP. If the host removes a guest, revoke the guest’s access to exact event details immediately and enforce the revocation on the server. Homepage listings do not grant membership.
 - The homepage may list events a guest cannot access. Show a locked card with the event name, banner, and basic listing information. Serve these cards from a limited set of listing fields. Apply the event-detail access rule to the exact date and time, venue or address, and other private event information. Guests who have yet to RSVP or are waitlisted can access the event page and RSVP status after redeeming the invite.
 

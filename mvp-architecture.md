@@ -6,7 +6,13 @@
 
 - Use Firebase Authentication on the existing Blaze plan. Guests can sign in with Google or verify their phone by SMS.
 - Use Cloud Firestore for event data, including invite redemption, membership, and RSVP transactions.
-- Give each event invite link a set expiration. Hosts can generate new links, and verified guests can redeem live links until they expire.
+- Use one invite creation screen per event. It creates shared guest links or permission invites for a specific person. Multiple links can be active at once, each with its own expiration.
+
+## Invite creation and redemption
+
+The host selects **Guest** to create a shareable membership link. The screen disables all elevated permission controls when **Guest** is selected. For a permission invite, the host chooses a recipient and selects the permissions to delegate. **Publish announcements** is subject to the existing confirmed RSVP rule. **Edit event details** is a separate permission option whose eligibility is still open.
+
+The invite flow sends signed-out guests through Google sign-in or SMS verification and resumes redemption afterward. On redemption, the server verifies the Firebase session and checks the token and its expiration against server time. Shared guest links create or return event membership. A permission invite additionally requires the intended verified account and grants the selected permissions for that event. Check these restrictions on the server as well as in the creation screen. The RSVP and waitlist rules apply to anyone seeking a spot through an invite.
 
 ## Access by event state
 
@@ -29,14 +35,14 @@ Exact details include the time, location, and private reference images. The serv
 | --- | --- |
 | Host account | A Firebase user ID with the ability to host, assigned through the owner's separate host invite flow. |
 | Event | The owning host, locked-card listing fields, private details, capacity, and song request settings. The event has a stable URL for normal navigation and notifications. |
-| Event invite | An event-scoped token with an expiration. One live shared link can admit multiple verified users. |
+| Event invite | An event-scoped token with an expiration. A guest invite admits verified guests. A permission invite identifies the intended account and its selected permissions. |
 | Event participant | One record per event and Firebase user ID. It holds membership status, current RSVP status, and the waitlist position for an active waitlisted RSVP. A canceled or removed record retains enough state to enforce the re-entry policy. |
 | Event posting grant | A host-managed grant tied to a confirmed RSVP for one event and one guest. The proposal is to end the grant when that RSVP ends. |
 | Event announcement | The event, author, content, and publication time. Keep existing posts available to confirmed attendees after the author loses access. |
 
-The invite flow sends signed-out guests through Google sign-in or SMS verification and resumes redemption afterward. The server verifies the Firebase session, then validates the token and checks its expiration against server time before creating or loading the participant record. Repeat redemption by an active member returns the existing membership and preserves the RSVP and queue position. Redirect to the ordinary event URL after redemption. Keep the invite token out of ordinary URLs, notification content, and application logs.
+Redeeming a guest link again returns existing membership and preserves the RSVP and queue position. Redirect to the ordinary event URL after redemption. Keep the invite token out of ordinary URLs, notification content, and application logs.
 
-Build listing, RSVP, and private-detail responses from explicit field sets. Check event ownership for host actions. For guest actions, read current membership and RSVP state, plus the specific grant or setting required by the operation. Keep revocation-sensitive responses out of shared caches, and authorize private media requests when they arrive. Spotify search for an event follows the server-side event access checks. Song submission also checks whether the host has closed requests and whether the deadline has passed, using server time.
+Build listing, RSVP, and private-detail responses from explicit field sets. Check event ownership for host-only actions and the applicable grant for delegated actions. For guest actions, read current membership and RSVP state, plus the specific grant or setting required by the operation. Keep revocation-sensitive responses out of shared caches, and authorize private media requests when they arrive. Spotify search for an event follows the server-side event access checks. Song submission also checks whether the host has closed requests and whether the deadline has passed, using server time.
 
 ## RSVP and capacity changes
 
@@ -48,13 +54,16 @@ Record notification work alongside the state change and send it after commit, wi
 
 ## Decisions to confirm
 
+- **Event editing eligibility.** Decide whether an editing grant requires a confirmed RSVP or can be used by someone helping run the event without a spot.
 - **Re-entry after cancellation or removal.** Proposed behavior gives canceled guests a fresh RSVP through the invite, with a new waitlist position if the event is full. Removed guests need the host to add them back. Opening an old event page link leaves access revoked in either case. [GitHub issue #6](https://github.com/Ackberry/taal/issues/6)
 - **Posting grants after an RSVP ends.** Proposed behavior ends the grant on cancellation or removal. If the guest later confirms again, the host can grant permission again. [GitHub issue #5](https://github.com/Ackberry/taal/issues/5)
 
 ## First acceptance checks
 
 - A verified user without membership sees only the listing when opening the ordinary URL. Redeeming the invite twice establishes one membership and leaves any active RSVP untouched.
-- An expired invite link grants no membership. A new live link can be redeemed, and a guest who redeemed the expired link earlier can still use their existing membership through the ordinary event URL.
+- Two links for one event can be redeemed while both are live. When one expires, the other still works, and a guest who already redeemed the expired link can use their existing membership through the ordinary event URL.
+- Choosing **Guest** disables the permission controls. The server rejects a guest-link creation request that includes an elevated permission.
+- A verified account other than the intended recipient cannot redeem a permission invite. The intended recipient receives the selected permissions for that event.
 - With one remaining spot and two simultaneous RSVP submissions, one is confirmed and the other is waitlisted. When the confirmed guest cancels, the longest-waiting guest is promoted and can read prior announcements.
 - A confirmed guest without a grant can read the board. Once granted permission, they can publish for that event. After revocation, a direct publish request fails even from a page opened before the revocation.
 - After a cancellation or host removal, direct requests for private event details and board content fail. A guest's canceled song requests no longer count toward event totals, and tracks already on Spotify remain on the playlist.
