@@ -53,13 +53,15 @@ Cancellation revokes access to the event and board, removes posting and editing 
 
 Save an audit entry alongside each announcement publication or event edit. Keep the published announcements, saved edits, and audit entries when the actor cancels. The same account can redeem its original permission invite again while it is live. Record the selected grants for the new attendance, and require a fresh confirmed RSVP before they can be used.
 
-Host removal revokes access and grants and blocks the account for that event in the same transaction. If a confirmed spot opens, the next eligible guest moves up. Only the host can clear the block through the event’s block list. A proposed starting point for manual additions is to add an existing Firebase user as a confirmed participant through the same capacity transaction. Serialize song requests, announcement publication, and delegated edits with changes to the RSVP and grants they depend on so an action ordered after revocation fails.
+Host removal revokes access and grants and blocks the account for that event in the same transaction. If a confirmed spot opens, the next eligible guest moves up. Only the host can clear the block through the event’s block list. An unblocked account can redeem a live invite and submit a fresh RSVP. A guest link gives standard membership. A permission invite, including a still-live link issued before removal, records the selected grants for the intended account. Those grants become usable when the new RSVP is confirmed.
+
+A proposed starting point for manual additions is to add an existing Firebase user as a confirmed participant through the same capacity transaction. Serialize song requests, announcement publication, and delegated edits with changes to the RSVP and grants they depend on so an action ordered after revocation fails.
 
 Record notification work alongside the state change and send it after commit, with retries keyed to the notification and recipient. For a published announcement, record which guests were confirmed and had contact email at publication. Use the latest saved contact email for delivery. Use the ordinary event URL and the limited email content specified in the rules. [Notification rules](rules.md#rsvp-guest-confirmation-and-event-updates)
 
 ## Decisions to confirm
 
-- **Re-entry.** Decide whether a canceled guest can rejoin through a shared guest link and whether a previously issued permission link can be used after the host clears an event block. [GitHub issue #6](https://github.com/Ackberry/taal/issues/6)
+- **Re-entry after cancellation.** Decide whether a canceled guest can rejoin through a shared guest link. [GitHub issue #6](https://github.com/Ackberry/taal/issues/6)
 
 ## First acceptance checks
 
@@ -72,5 +74,6 @@ Record notification work alongside the state change and send it after commit, wi
 - A recipient with an editing grant follows the usual waitlist rules. Once confirmed, they appear on the attendee list and can edit event details. A later loss of confirmation immediately blocks editing.
 - When a guest with posting or editing permission cancels, their grants are removed immediately and their published posts, edits, and audit entries are retained. Rejoining through the original live permission invite restores the selected permissions once a new RSVP is confirmed. A fresh RSVP alone leaves the guest with standard attendee access.
 - After host removal, both shared and permission links fail for that account at that event. Repeated attempts are rate-limited across links and generate no host notification. Only the host can clear the block from the event’s block list.
+- After the host clears a block, redeeming a live guest link gives standard guest access. Redeeming a still-live permission link issued before removal records its selected grants, which the intended account can use after a fresh RSVP is confirmed.
 - After a cancellation or host removal, direct requests for private event details and board content fail. A guest's canceled song requests no longer count toward event totals, and tracks already on Spotify remain on the playlist.
 - Announcement notifications go to eligible recipients as of publication. The email carries the ordinary event URL and omits private details, announcement text, and invite tokens.
