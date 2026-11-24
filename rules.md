@@ -16,7 +16,7 @@
 
 ## Private events
 
-- Every event is private. The host can create multiple event-specific invite links that are active at the same time. Each link has its own expiration. The event host can disable an individual link before it expires.
+- Every event is private. The host can create multiple event-specific invite links that are active at the same time. Each link defaults to expiring at the event start time. The event host can set a different expiration date and time for any link, including a time after the event starts. The host can also disable an individual link before it expires.
 - Give the host one interface for creating shared guest links. The host can choose the readable part of an invite URL path. Taal appends an unguessable random suffix to it. The full path, including the suffix, is required to redeem the invite. Every event invite link uses the same guest experience and grants standard guest membership under the normal RSVP and waitlist rules.
 - Give the event host an **Edit permissions** action for each guest with a confirmed RSVP. The host can add or remove individual permissions, including publishing announcements and editing event details. Changes take effect immediately and preserve the guest’s membership and RSVP status. Using either permission requires a current confirmed RSVP.
 - Use a separate, unguessable token for each link. After Firebase verification, check the token, its expiration, and whether it is disabled on the server before redeeming the invite. Disabling or expiring a link stops future redemptions and leaves existing memberships, RSVPs, and permission grants in place.
