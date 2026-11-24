@@ -68,7 +68,7 @@ For manual additions, use the Firebase Admin SDK on the server to look up an exa
 
 Serialize song requests, announcement publication, and delegated edits with changes to the RSVP and grants they depend on so an action ordered after revocation fails.
 
-Record notification work alongside the state change and send it after commit. Deliver email through Brevo’s transactional API from the server. Key retries to the notification and recipient so retrying a job can skip completed sends. For a published announcement, record which guests were confirmed and had contact email at publication. Use the latest saved contact email for delivery. Use the ordinary event URL and the limited email content specified in the rules. [Notification rules](rules.md#rsvp-guest-confirmation-and-event-updates)
+Record notification work alongside the state change and send it after commit. Deliver email through Brevo’s transactional API from the server. Mark RSVP confirmations and attendee-facing event updates as higher priority than announcement emails. Select pending emails in priority order for the available daily quota. Key retries to the notification and recipient so retrying a job can skip completed sends. For a published announcement, record which guests were confirmed and had contact email at publication. Use the latest saved contact email for delivery. Use the ordinary event URL and the limited email content specified in the rules. [Notification rules](rules.md#rsvp-guest-confirmation-and-event-updates)
 
 ## First acceptance checks
 
@@ -91,4 +91,5 @@ Record notification work alongside the state change and send it after commit. De
 - After host removal, event invite links fail for that account at that event. Repeated attempts are rate-limited across links and generate no host notification. Only the host can clear the block from the event’s block list.
 - After the host clears a block, the guest can redeem a live link and RSVP again with standard guest access.
 - After a cancellation or host removal, direct requests for private event details and board content fail. A guest's canceled song requests no longer count toward event totals, and tracks already on Spotify remain on the playlist.
+- When capacity is limited and both kinds are pending, choose RSVP confirmations and attendee-facing event updates before announcement emails.
 - Announcement notifications go to eligible recipients as of publication. The email carries the ordinary event URL and omits private details, announcement text, and invite tokens.
