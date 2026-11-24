@@ -6,19 +6,19 @@
 
 - Use Firebase Authentication on the existing Blaze plan. Require a verified Taal account to browse event listings and host profiles, participate as a guest, or act as a host or delegate. Guests can sign in with Google or verify their phone by SMS.
 - Use Cloud Firestore for event data, including invite redemption, membership, and RSVP transactions.
-- Use one invite creation screen per event. It creates shared guest links or permission invites for a specific person. Multiple links can be active at once, each with its own expiration and a host-only **Disable** action.
+- Use one invite creation screen for guest links, including custom links. Multiple links can be active at once, each with its own expiration and a host-only **Disable** action. The host grants elevated permissions individually after RSVP confirmation.
 
 ## Invite creation and redemption
 
-The host selects **Guest** to create a shareable membership link. The screen disables all elevated permission controls when **Guest** is selected. For a permission invite, the host selects an existing verified Taal account using its exact sign-in email or phone number and chooses the permissions to delegate. **Publish announcements** and **Edit event details** are separate permission options. Both require a current confirmed RSVP, and recipients appear on the attendee list once confirmed.
+Create each default or custom guest link as its own Firestore invite record. Every link carries the same standard guest access. The set of fields hosts can customize is open.
 
-The invite flow sends signed-out guests through Google sign-in or SMS verification and resumes redemption afterward. On redemption, the server verifies the Firebase session and checks the token, whether the host disabled it, and its expiration against server time. Redeeming either kind of link creates or returns event membership. A permission invite additionally requires the intended verified account and records the selected permissions for that event. Check these restrictions on the server as well as in the creation screen. Apply the same RSVP and waitlist rules to all invite recipients. Check the event block list for the verified account before creating membership or grants. Rate-limit redemption by event and account across links so changing the link cannot reset the limit. Blocked attempts generate no host notifications.
+The invite flow sends signed-out guests through Google sign-in or SMS verification and resumes redemption afterward. The server verifies the Firebase session and checks the token, disable status, and expiration against server time. Check the event block list and the invite in the same transaction that creates or returns membership. Apply the same RSVP and waitlist rules to all invite recipients. Rate-limit redemption by event and account across links so changing the link cannot reset the limit. Blocked attempts generate no host notifications.
 
-Store the disable timestamp on the individual Firestore invite record. Read the invite in the same transaction that creates membership or grants so a redemption ordered after disabling fails. Existing memberships, RSVPs, grants, and other links stay active under their usual rules.
+Store the disable timestamp on the individual invite record. A redemption ordered after disabling fails. Existing memberships, RSVPs, grants, and other links stay active under their usual rules.
 
 ## Editing guest permissions
 
-Reuse the invite screen’s permission controls in the event guest list. The host can open **Edit permissions** for a guest and select which permissions to grant. In one server transaction, check event ownership and current membership, update the guest’s grants, and record who changed which permissions. The RSVP still determines when the guest can use a grant. Changes apply to subsequent requests, including requests from a page the guest already had open.
+The host can open **Edit permissions** on a confirmed attendee’s row and select **Publish announcements**, **Edit event details**, or both. In one server transaction, check event ownership and the guest’s current confirmed RSVP, update the guest’s grants, and record who changed which permissions. Changes apply to subsequent requests, including requests from a page the guest already had open.
 
 ## Access by event state
 
@@ -41,7 +41,7 @@ Exact details include the time, location, and private reference images. The serv
 | --- | --- |
 | Host account | A Firebase user ID with the ability to host, assigned through the owner's separate host invite flow. |
 | Event | The owning host, locked-card listing fields, private details, capacity, and song request settings. The event has a stable URL for normal navigation and notifications. |
-| Event invite | An event-scoped token with an expiration and an optional disable timestamp. A guest invite admits verified guests. A permission invite identifies the intended account and its selected permissions. |
+| Event invite | An event-scoped token with an expiration and an optional disable timestamp. Every link admits verified guests under the same membership and RSVP rules. |
 | Event participant | One record per event and Firebase user ID. It holds membership status, current RSVP status, and the waitlist position for an active waitlisted RSVP. A canceled guest can rejoin by redeeming a live invite and submitting a new RSVP. A host-removed record stays on the event’s block list until the event host clears it there. |
 | Event permission grant | A host-managed grant for one event, attendee account, and permission. The attendee needs a current confirmed RSVP to use a posting or editing grant. |
 | Event announcement | The event, author, content, and publication time. Keep existing posts available to confirmed attendees after the author loses access. |
@@ -57,11 +57,11 @@ Use one transaction boundary per event for operations that change attendance. A 
 
 Cancellation revokes access to the event and board, removes posting and editing grants, deletes the guest's requests, and removes their contributions to request counts. The guest can redeem a live shared invite and submit a fresh RSVP under the usual capacity and waitlist rules. Assign a new waitlist position if needed. Tracks already on Spotify stay on the playlist. [Deferred Spotify decision](https://github.com/Ackberry/taal/issues/1)
 
-Save an audit entry alongside each announcement publication or event edit. Keep the published announcements, saved edits, and audit entries when the actor cancels. The same account can redeem its original permission invite again while it is live. Record the selected grants for the new attendance, and require a fresh confirmed RSVP before they can be used.
+Save an audit entry alongside each announcement publication or event edit. Keep the published announcements, saved edits, and audit entries when the actor cancels. If the guest returns, the host can grant permissions again after a new RSVP is confirmed.
 
-Host removal revokes access and grants and blocks the account for that event in the same transaction. If a confirmed spot opens, the next eligible guest moves up. Only the host can clear the block through the event’s block list. An unblocked account can redeem a live invite and submit a fresh RSVP. A guest link gives standard membership. A permission invite, including a still-live link issued before removal, records the selected grants for the intended account. Those grants become usable when the new RSVP is confirmed.
+Host removal revokes access and grants and blocks the account for that event in the same transaction. If a confirmed spot opens, the next eligible guest moves up. Only the host can clear the block through the event’s block list. An unblocked account can redeem a live invite and submit a fresh RSVP. The guest rejoins with standard membership. The host can grant permissions again after a new RSVP is confirmed.
 
-For manual additions and permission invite creation, use the Firebase Admin SDK on the server to look up an exact verified sign-in email or phone number. Normalize phone numbers to E.164 before lookup. Firebase looks up the primary authentication email and primary phone number. Keep the lookup limited to the event host, rate-limit attempts, and use the resulting Firebase user ID in the capacity transaction or as the permission invite’s intended recipient. [Firebase Admin SDK user lookup](https://firebase.google.com/docs/auth/admin/manage-users)
+For manual additions, use the Firebase Admin SDK on the server to look up an exact verified sign-in email or phone number. Normalize phone numbers to E.164 before lookup. Firebase looks up the primary authentication email and primary phone number. Keep the lookup limited to the event host, rate-limit attempts, and use the resulting Firebase user ID in the capacity transaction. [Firebase Admin SDK user lookup](https://firebase.google.com/docs/auth/admin/manage-users)
 
 Serialize song requests, announcement publication, and delegated edits with changes to the RSVP and grants they depend on so an action ordered after revocation fails.
 
@@ -73,16 +73,15 @@ Record notification work alongside the state change and send it after commit, wi
 - A verified user without membership sees only the listing when opening the ordinary URL. Redeeming the invite twice establishes one membership and leaves any active RSVP untouched.
 - Two links for one event can be redeemed while both are live. When one expires, the other still works, and a guest who already redeemed the expired link can use their existing membership through the ordinary event URL.
 - After the host disables a link, it cannot be redeemed even before expiration. Other live links still work, and prior redemptions retain their membership, RSVP status, and grants.
-- Choosing **Guest** disables the permission controls. The server rejects a guest-link creation request that includes an elevated permission.
-- The host can issue a permission invite after matching an existing verified account by exact sign-in email or phone. A verified account other than the intended recipient cannot redeem a permission invite. The intended recipient receives the selected permissions for that event.
+- A host can create multiple custom guest links for one event. Redeeming any of them grants standard guest membership and follows the same RSVP and waitlist rules.
 - A host can manually confirm an existing verified Taal account found by exact sign-in email or phone when capacity allows. A lookup that only matches a notification contact address leaves the attendee list and available spots unchanged.
 - With one remaining spot and two simultaneous RSVP submissions, one is confirmed and the other is waitlisted. When the confirmed guest cancels, the longest-waiting guest is promoted and can read prior announcements.
 - A confirmed guest without a grant can read the board. Once granted permission, they can publish for that event. After revocation, a direct publish request fails even from a page opened before the revocation.
 - A host can add editing permission and remove posting permission for the same guest without changing their RSVP. After the change, the guest can edit if confirmed, and a direct publish request using the old page fails.
-- A recipient with an editing grant follows the usual waitlist rules. Once confirmed, they appear on the attendee list and can edit event details. A later loss of confirmation immediately blocks editing.
+- The host can grant editing permission to a confirmed attendee. Later loss of confirmation immediately blocks editing.
 - A guest who cancels can redeem a live guest link and RSVP again. If the event is full, the guest joins at the end of the existing waitlist.
-- When a guest with posting or editing permission cancels, their grants are removed immediately and their published posts, edits, and audit entries are retained. Rejoining through the original live permission invite restores the selected permissions once a new RSVP is confirmed. A fresh RSVP alone leaves the guest with standard attendee access.
-- After host removal, both shared and permission links fail for that account at that event. Repeated attempts are rate-limited across links and generate no host notification. Only the host can clear the block from the event’s block list.
-- After the host clears a block, redeeming a live guest link gives standard guest access. Redeeming a still-live permission link issued before removal records its selected grants, which the intended account can use after a fresh RSVP is confirmed.
+- When a guest with posting or editing permission cancels, their grants are removed immediately and their published posts, edits, and audit entries are retained. The guest returns with standard attendee access. The host can grant extra permissions again after confirmation.
+- After host removal, event invite links fail for that account at that event. Repeated attempts are rate-limited across links and generate no host notification. Only the host can clear the block from the event’s block list.
+- After the host clears a block, the guest can redeem a live link and RSVP again with standard guest access.
 - After a cancellation or host removal, direct requests for private event details and board content fail. A guest's canceled song requests no longer count toward event totals, and tracks already on Spotify remain on the playlist.
 - Announcement notifications go to eligible recipients as of publication. The email carries the ordinary event URL and omits private details, announcement text, and invite tokens.

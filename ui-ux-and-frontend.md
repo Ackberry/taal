@@ -18,7 +18,7 @@ Use the event photo to give the page some personality. Show the RSVP status, add
 
 ## What hosts should see
 
-Give hosts one page per event with clear ways to edit details, copy the invite link, manage guests, post an announcement and review song requests. In the review list, show each track once with its request count. Let hosts select several tracks and use **Add to Spotify**. Move each track to the event tracklist once Spotify confirms it was added. Keep failed tracks in the review list with a way to retry.
+Give hosts one page per event with clear ways to edit details, create and manage guest invite links, manage guests, post an announcement and review song requests. Put **Edit permissions** on each confirmed attendee’s row. In the review list, show each track once with its request count. Let hosts select several tracks and use **Add to Spotify**. Move each track to the event tracklist once Spotify confirms it was added. Keep failed tracks in the review list with a way to retry.
 
 ## Frontend recommendation
 
