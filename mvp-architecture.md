@@ -16,6 +16,10 @@ The invite flow sends signed-out guests through Google sign-in or SMS verificati
 
 Store the disable timestamp on the individual Firestore invite record. Read the invite in the same transaction that creates membership or grants so a redemption ordered after disabling fails. Existing memberships, RSVPs, grants, and other links stay active under their usual rules.
 
+## Editing guest permissions
+
+Reuse the invite screen’s permission controls in the event guest list. The host can open **Edit permissions** for a guest and select which permissions to grant. In one server transaction, check event ownership and current membership, update the guest’s grants, and record who changed which permissions. The RSVP still determines when the guest can use a grant. Changes apply to subsequent requests, including requests from a page the guest already had open.
+
 ## Access by event state
 
 Each guest row assumes a verified Firebase session. “Event page” means the RSVP and status view. The locked homepage card is available only to signed-in accounts that can see the listing. Serve the signed-out homepage without loading or embedding event or host data. Verify the Firebase session before serving listings, event previews, host profiles, or their protected media. Additional signed-out homepage content is deferred. [GitHub issue #7](https://github.com/Ackberry/taal/issues/7)
@@ -41,7 +45,7 @@ Exact details include the time, location, and private reference images. The serv
 | Event participant | One record per event and Firebase user ID. It holds membership status, current RSVP status, and the waitlist position for an active waitlisted RSVP. A canceled guest can rejoin by redeeming a live invite and submitting a new RSVP. A host-removed record stays on the event’s block list until the event host clears it there. |
 | Event permission grant | A host-managed grant for one event, attendee account, and permission. The attendee needs a current confirmed RSVP to use a posting or editing grant. |
 | Event announcement | The event, author, content, and publication time. Keep existing posts available to confirmed attendees after the author loses access. |
-| Event audit entry | The event, acting account, action, and timestamp for an announcement publication or event edit. Retain the entry after the actor cancels. |
+| Event audit entry | The event, acting account, action, and timestamp for an announcement publication, event edit, or guest permission change. Retain the entry after the actor cancels. |
 
 Redeeming a guest link again returns existing membership and preserves the RSVP and queue position. Redirect to the ordinary event URL after redemption. Keep the invite token out of ordinary URLs, notification content, and application logs.
 
@@ -74,6 +78,7 @@ Record notification work alongside the state change and send it after commit, wi
 - A host can manually confirm an existing verified Taal account found by exact sign-in email or phone when capacity allows. A lookup that only matches a notification contact address leaves the attendee list and available spots unchanged.
 - With one remaining spot and two simultaneous RSVP submissions, one is confirmed and the other is waitlisted. When the confirmed guest cancels, the longest-waiting guest is promoted and can read prior announcements.
 - A confirmed guest without a grant can read the board. Once granted permission, they can publish for that event. After revocation, a direct publish request fails even from a page opened before the revocation.
+- A host can add editing permission and remove posting permission for the same guest without changing their RSVP. After the change, the guest can edit if confirmed, and a direct publish request using the old page fails.
 - A recipient with an editing grant follows the usual waitlist rules. Once confirmed, they appear on the attendee list and can edit event details. A later loss of confirmation immediately blocks editing.
 - A guest who cancels can redeem a live guest link and RSVP again. If the event is full, the guest joins at the end of the existing waitlist.
 - When a guest with posting or editing permission cancels, their grants are removed immediately and their published posts, edits, and audit entries are retained. Rejoining through the original live permission invite restores the selected permissions once a new RSVP is confirmed. A fresh RSVP alone leaves the guest with standard attendee access.
