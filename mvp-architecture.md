@@ -6,6 +6,7 @@
 
 - Use Firebase Authentication on the existing Blaze plan. Require a verified Taal account to browse event listings and host profiles, participate as a guest, or act as a host or delegate. Guests can sign in with Google or verify their phone by SMS.
 - Use Cloud Firestore for event data, including invite redemption, membership, and RSVP transactions.
+- Use Brevo’s free transactional email plan for confirmation, event update, and announcement emails. [Brevo free-plan limits](https://help.brevo.com/hc/en-us/articles/208580669-FAQs-What-are-the-limits-of-the-Free-plan)
 - Use one invite creation screen for guest links, with a host-chosen readable path and an automatically generated random suffix. Multiple links can be active at once, each with its own expiration and a host-only **Disable** action. The host grants elevated permissions individually after RSVP confirmation.
 
 ## Invite creation and redemption
@@ -67,7 +68,7 @@ For manual additions, use the Firebase Admin SDK on the server to look up an exa
 
 Serialize song requests, announcement publication, and delegated edits with changes to the RSVP and grants they depend on so an action ordered after revocation fails.
 
-Record notification work alongside the state change and send it after commit, with retries keyed to the notification and recipient. For a published announcement, record which guests were confirmed and had contact email at publication. Use the latest saved contact email for delivery. Use the ordinary event URL and the limited email content specified in the rules. [Notification rules](rules.md#rsvp-guest-confirmation-and-event-updates)
+Record notification work alongside the state change and send it after commit. Deliver email through Brevo’s transactional API from the server. Key retries to the notification and recipient so retrying a job can skip completed sends. For a published announcement, record which guests were confirmed and had contact email at publication. Use the latest saved contact email for delivery. Use the ordinary event URL and the limited email content specified in the rules. [Notification rules](rules.md#rsvp-guest-confirmation-and-event-updates)
 
 ## First acceptance checks
 
