@@ -14,7 +14,9 @@ Create each guest link as its own Firestore invite record. Let the host enter a 
 
 The invite flow sends signed-out guests through Google sign-in or SMS verification and resumes redemption afterward. The server verifies the Firebase session and checks the token, disable status, and expiration against server time. Check the event block list and the invite in the same transaction that creates or returns membership. Apply the same RSVP and waitlist rules to all invite recipients. Rate-limit redemption by event and account across links so changing the link cannot reset the limit. Blocked attempts generate no host notifications.
 
-Prefill each new invite’s expiration with the event start time. Let the host set a different date and time, and save the expiration as a Firestore timestamp on that invite. Compare the stored timestamp with server time during redemption. Store the disable timestamp separately on the invite record. A redemption ordered after disabling fails. Existing memberships, RSVPs, grants, and other links stay active under their usual rules.
+Prefill each new invite’s expiration with the event start time. Let the host set a different date and time. Save the expiration as a Firestore timestamp and track whether it follows the event start or was set manually. Compare the stored timestamp with server time during redemption. When saving a new event start, check each default link against its current expiration and disable status. Update only links that are still live, and apply the start time and expiration changes together. Store the disable timestamp separately on the invite record. A redemption ordered after disabling fails. Existing memberships, RSVPs, grants, and other links stay active under their usual rules.
+
+Use the framework’s default page for 404 responses until the custom Taal page is in scope. [GitHub issue #8](https://github.com/Ackberry/taal/issues/8)
 
 ## Editing guest permissions
 
@@ -41,7 +43,7 @@ Exact details include the time, location, and private reference images. The serv
 | --- | --- |
 | Host account | A Firebase user ID with the ability to host, assigned through the owner's separate host invite flow. |
 | Event | The owning host, locked-card listing fields, private details, capacity, and song request settings. The event has a stable URL for normal navigation and notifications. |
-| Event invite | An event-scoped token with a readable URL path, an expiration, and an optional disable timestamp. Every link admits verified guests under the same membership and RSVP rules. |
+| Event invite | An event-scoped token with a readable URL path, an expiration, its default or manual setting, and an optional disable timestamp. Every link admits verified guests under the same membership and RSVP rules. |
 | Event participant | One record per event and Firebase user ID. It holds membership status, current RSVP status, and the waitlist position for an active waitlisted RSVP. A canceled guest can rejoin by redeeming a live invite and submitting a new RSVP. A host-removed record stays on the event’s block list until the event host clears it there. |
 | Event permission grant | A host-managed grant for one event, attendee account, and permission. The attendee needs a current confirmed RSVP to use a posting or editing grant. |
 | Event announcement | The event, author, content, and publication time. Keep existing posts available to confirmed attendees after the author loses access. |
@@ -72,6 +74,7 @@ Record notification work alongside the state change and send it after commit, wi
 - A signed-out visitor sees sign-in and account creation. Direct requests for event listings or host profiles return no protected content.
 - A verified user without membership sees only the listing when opening the ordinary URL. Redeeming the invite twice establishes one membership and leaves any active RSVP untouched.
 - A new invite defaults to expiring at the event start time. A host can set a different expiration for that link, including a later time, and redemption uses the saved time.
+- If the host reschedules before a default link expires, the link’s expiration moves to the new start. A reschedule at or after expiration leaves the link expired. A manually set expiration stays fixed and a disabled link stays disabled.
 - Two links for one event can be redeemed while both are live. When one expires, the other still works, and a guest who already redeemed the expired link can use their existing membership through the ordinary event URL.
 - After the host disables a link, it cannot be redeemed even before expiration. Other live links still work, and prior redemptions retain their membership, RSVP status, and grants.
 - A host can create multiple guest links with custom URL paths for one event. Each link includes its own random suffix. The readable path alone grants no membership. The full live path opens the standard guest invite flow and follows the same RSVP and waitlist rules.
