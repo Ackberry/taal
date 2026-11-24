@@ -17,7 +17,7 @@
 ## Private events
 
 - Every event is private. The host can create multiple event-specific invite links that are active at the same time. Each link has its own expiration. The event host can disable an individual link before it expires.
-- Give the host one interface for creating shared guest links, including custom links for the same event. Every event invite link grants standard guest membership under the normal RSVP and waitlist rules.
+- Give the host one interface for creating shared guest links. The host can customize the URL path for an invite. Every event invite link uses the same guest experience and grants standard guest membership under the normal RSVP and waitlist rules.
 - Give the event host an **Edit permissions** action for each guest with a confirmed RSVP. The host can add or remove individual permissions, including publishing announcements and editing event details. Changes take effect immediately and preserve the guest’s membership and RSVP status. Using either permission requires a current confirmed RSVP.
 - Use a separate, unguessable token for each link. After Firebase verification, check the token, its expiration, and whether it is disabled on the server before redeeming the invite. Disabling or expiring a link stops future redemptions and leaves existing memberships, RSVPs, and permission grants in place.
 - Check event membership and RSVP status on the server before returning invite-only information, searching Spotify for an event, or accepting a song request. Exact event details and new song requests require a current confirmed RSVP. Homepage listings do not grant membership.

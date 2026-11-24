@@ -6,11 +6,11 @@
 
 - Use Firebase Authentication on the existing Blaze plan. Require a verified Taal account to browse event listings and host profiles, participate as a guest, or act as a host or delegate. Guests can sign in with Google or verify their phone by SMS.
 - Use Cloud Firestore for event data, including invite redemption, membership, and RSVP transactions.
-- Use one invite creation screen for guest links, including custom links. Multiple links can be active at once, each with its own expiration and a host-only **Disable** action. The host grants elevated permissions individually after RSVP confirmation.
+- Use one invite creation screen for guest links, with an option to customize the URL path. Multiple links can be active at once, each with its own expiration and a host-only **Disable** action. The host grants elevated permissions individually after RSVP confirmation.
 
 ## Invite creation and redemption
 
-Create each default or custom guest link as its own Firestore invite record. Every link carries the same standard guest access. The set of fields hosts can customize is open.
+Create each guest link as its own Firestore invite record. The host can set a custom URL path segment, such as `special-party`. Every link uses the same guest experience and standard guest access. The final URL format is open. A random suffix would preserve the unguessable token requirement and let the host customize the readable part of the path.
 
 The invite flow sends signed-out guests through Google sign-in or SMS verification and resumes redemption afterward. The server verifies the Firebase session and checks the token, disable status, and expiration against server time. Check the event block list and the invite in the same transaction that creates or returns membership. Apply the same RSVP and waitlist rules to all invite recipients. Rate-limit redemption by event and account across links so changing the link cannot reset the limit. Blocked attempts generate no host notifications.
 
@@ -73,7 +73,7 @@ Record notification work alongside the state change and send it after commit, wi
 - A verified user without membership sees only the listing when opening the ordinary URL. Redeeming the invite twice establishes one membership and leaves any active RSVP untouched.
 - Two links for one event can be redeemed while both are live. When one expires, the other still works, and a guest who already redeemed the expired link can use their existing membership through the ordinary event URL.
 - After the host disables a link, it cannot be redeemed even before expiration. Other live links still work, and prior redemptions retain their membership, RSVP status, and grants.
-- A host can create multiple custom guest links for one event. Redeeming any of them grants standard guest membership and follows the same RSVP and waitlist rules.
+- A host can create multiple guest links with custom URL paths for one event. Each link opens the standard guest invite flow and follows the same RSVP and waitlist rules.
 - A host can manually confirm an existing verified Taal account found by exact sign-in email or phone when capacity allows. A lookup that only matches a notification contact address leaves the attendee list and available spots unchanged.
 - With one remaining spot and two simultaneous RSVP submissions, one is confirmed and the other is waitlisted. When the confirmed guest cancels, the longest-waiting guest is promoted and can read prior announcements.
 - A confirmed guest without a grant can read the board. Once granted permission, they can publish for that event. After revocation, a direct publish request fails even from a page opened before the revocation.
