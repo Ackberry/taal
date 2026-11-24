@@ -10,7 +10,7 @@ Luma gives waitlisted guests a clear status and tells them when their spot is co
 
 ## What guests should see
 
-1. **Open the invite.** Give signed-out guests two clear choices, **Continue with Google** and **Get a code by text**. Explain that verification is needed to open the private invite. Return them to the same event when they finish.
+1. **Open the invite.** Show the unavailable page immediately for an invalid, expired, or disabled invite. On a live invite, give signed-out guests two clear choices, **Continue with Google** and **Get a code by text**. Explain that verification is needed to open the private invite. Return them to the same event when they finish.
 2. **RSVP.** Once the invite is redeemed, put **RSVP** near the top of the event page. Show the result in words, such as **You’re going** or **You’re on the waitlist**. Explain that waitlisted guests get a spot automatically when their turn comes. Reveal the exact time and address once a guest is confirmed. Revoke access to the event page and its announcement board when they cancel. Use **TBA** for details the host has yet to announce.
 3. **Request a song.** When requests are open, offer confirmed guests **Request a song**. Let them search by song or artist, or paste a Spotify link. Their Taal sign-in should be all they need for either option. Show the title and artist so guests can check what they picked, and ask for a first name or nickname. After submission, show **Song requested** and repeat the event details. If the host has set a deadline, show the time left. When requests close, say so where the button would normally appear.
 
