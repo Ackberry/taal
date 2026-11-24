@@ -4,7 +4,7 @@
 
 ## Confirmed decisions
 
-- Use Firebase Authentication on the existing Blaze plan. Require a verified Taal account for host actions, guest participation, and delegated event actions. Guests can sign in with Google or verify their phone by SMS.
+- Use Firebase Authentication on the existing Blaze plan. Require a verified Taal account to browse event listings and host profiles, participate as a guest, or act as a host or delegate. Guests can sign in with Google or verify their phone by SMS.
 - Use Cloud Firestore for event data, including invite redemption, membership, and RSVP transactions.
 - Use one invite creation screen per event. It creates shared guest links or permission invites for a specific person. Multiple links can be active at once, each with its own expiration.
 
@@ -16,7 +16,7 @@ The invite flow sends signed-out guests through Google sign-in or SMS verificati
 
 ## Access by event state
 
-Each guest row assumes a verified Firebase session. “Event page” means the RSVP and status view. The locked homepage card is available to anyone who can see the listing.
+Each guest row assumes a verified Firebase session. “Event page” means the RSVP and status view. The locked homepage card is available only to signed-in accounts that can see the listing. Serve the signed-out homepage without loading or embedding event or host data. Verify the Firebase session before serving listings, event previews, host profiles, or their protected media. Additional signed-out homepage content is deferred. [GitHub issue #7](https://github.com/Ackberry/taal/issues/7)
 
 | Event relationship | Event page | Exact details and board | Request songs while open | Publish announcements | Edit event details |
 | --- | --- | --- | --- | --- | --- |
@@ -27,7 +27,7 @@ Each guest row assumes a verified Firebase session. “Event page” means the R
 | Canceled or removed guest | — | — | — | — | — |
 | Event host | Yes | Yes | Manages requests | Yes | Yes |
 
-Exact details include the time, location, and private reference images. The server requires a current confirmed RSVP for guest access to private media and announcement history. Full tracklist access for a confirmed guest also requires the host's tracklist sharing setting to include them. Host-profile announcements follow the host profile's visibility rules. [Event and announcement rules](rules.md#private-events)
+Exact details include the time, location, and private reference images. The server requires a current confirmed RSVP for guest access to private media and announcement history. Full tracklist access for a confirmed guest also requires the host's tracklist sharing setting to include them. Host-profile announcements require a verified session and use the host profile's visibility rules. [Event and announcement rules](rules.md#private-events)
 
 ## Proposed data and authorization model
 
@@ -63,6 +63,7 @@ Record notification work alongside the state change and send it after commit, wi
 
 ## First acceptance checks
 
+- A signed-out visitor sees sign-in and account creation. Direct requests for event listings or host profiles return no protected content.
 - A verified user without membership sees only the listing when opening the ordinary URL. Redeeming the invite twice establishes one membership and leaves any active RSVP untouched.
 - Two links for one event can be redeemed while both are live. When one expires, the other still works, and a guest who already redeemed the expired link can use their existing membership through the ordinary event URL.
 - Choosing **Guest** disables the permission controls. The server rejects a guest-link creation request that includes an elevated permission.

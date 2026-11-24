@@ -9,7 +9,7 @@
 
 ## Accounts and guest verification
 
-- Require a verified Taal account to host, redeem an event invite, RSVP, submit song requests, or exercise delegated event permissions.
+- Require a verified Taal account to browse event listings, view host profiles, host events, redeem an event invite, RSVP, submit song requests, or exercise delegated event permissions. The MVP homepage offers sign-in and account creation to signed-out visitors. Additional signed-out homepage content is deferred. [GitHub issue #7](https://github.com/Ackberry/taal/issues/7)
 - Verify each guest through Firebase Authentication before allowing them to redeem an event invite or submit song requests. The guest chooses either Google sign-in or phone verification by SMS.
 - The event link opens a verification screen for signed-out guests. Verify the guest session on the server and enforce the event membership and RSVP rules below.
 - Use the Firebase user ID to identify the guest independently of their verification method. Allow additional verification methods in the future.
@@ -21,7 +21,7 @@
 - To delegate event permissions, the host selects the permissions and a recipient with an existing verified Taal account in the same interface. Find that account by its exact verified sign-in email or phone number. The server grants only the selected permissions for that event to the intended verified account. Permission invite recipients RSVP under the same capacity and waitlist rules as other guests and appear on the attendee list once confirmed. A current confirmed RSVP is required to use an announcement posting or event editing grant.
 - Use a separate, unguessable token for each link. After Firebase verification, check the token, its expiration, and any recipient restriction on the server before redeeming the invite. Expiring a link leaves memberships and RSVPs already established through it in place.
 - Check event membership and RSVP status on the server before returning invite-only information, searching Spotify for an event, or accepting a song request. Exact event details and new song requests require a current confirmed RSVP. Homepage listings do not grant membership.
-- The homepage may list events a guest cannot access. Show a locked card with the event name, banner, and basic listing information. Serve these cards from a limited set of listing fields. Apply the event-detail access rule to the exact date and time, venue or address, and other private event information. Guests who have yet to RSVP or are waitlisted can access the event page and RSVP status after redeeming the invite.
+- The signed-in homepage may list events a guest cannot access. Show a locked card with the event name, banner, and basic listing information. Serve these cards from a limited set of listing fields. Apply the event-detail access rule to the exact date and time, venue or address, and other private event information. Guests who have yet to RSVP or are waitlisted can access the event page and RSVP status after redeeming the invite.
 
 ## Guest song submissions
 
