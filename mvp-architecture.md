@@ -7,6 +7,7 @@
 - Use Firebase Authentication on the existing Blaze plan. Require a verified Taal account to browse event listings and host profiles, participate as a guest, or act as a host or delegate. Guests can sign in with Google or verify their phone by SMS.
 - Use Cloud Firestore for event data, including invite redemption, membership, and RSVP transactions.
 - Use Brevo’s free transactional email plan for confirmation, event update, and announcement emails. [Brevo free-plan limits](https://help.brevo.com/hc/en-us/articles/208580669-FAQs-What-are-the-limits-of-the-Free-plan)
+- Run the Spotify pilot with one Development Mode app and up to five authorized Spotify accounts for hosts. Keep Premium active on the app owner’s Spotify account. [Spotify quota modes](https://developer.spotify.com/documentation/web-api/concepts/quota-modes)
 - Use one invite creation screen for guest links, with a host-chosen readable path and an automatically generated random suffix. Multiple links can be active at once, each with its own expiration and a host-only **Disable** action. The host grants elevated permissions individually after RSVP confirmation.
 
 ## Invite creation and redemption
@@ -70,6 +71,10 @@ Serialize song requests, announcement publication, and delegated edits with chan
 
 Record notification work alongside the state change and send it after commit. Deliver email through Brevo’s transactional API from the server. Mark RSVP confirmations and attendee-facing event updates as higher priority than announcement emails. Select pending emails in priority order for the available daily quota. Key retries to the notification and recipient so retrying a job can skip completed sends. For a published announcement, record which guests were confirmed and had contact email at publication. Use the latest saved contact email for delivery. Use the ordinary event URL and the limited email content specified in the rules. [Notification rules](rules.md#rsvp-guest-confirmation-and-event-updates)
 
+## Spotify pilot
+
+Allowlist the pilot hosts in the Spotify Developer Dashboard. Each host connects their own Spotify account through Spotify authorization so Taal can manage that host’s event playlists. Use the app’s server-side credentials for catalog search and check the guest’s Taal membership and confirmed RSVP before calling Spotify. Test both playlist writes and guest search against the pilot app. [Spotify authorization](https://developer.spotify.com/documentation/web-api/concepts/authorization)
+
 ## First acceptance checks
 
 - A signed-out visitor sees sign-in and account creation. Direct requests for event listings or host profiles return no protected content.
@@ -92,4 +97,5 @@ Record notification work alongside the state change and send it after commit. De
 - After the host clears a block, the guest can redeem a live link and RSVP again with standard guest access.
 - After a cancellation or host removal, direct requests for private event details and board content fail. A guest's canceled song requests no longer count toward event totals, and tracks already on Spotify remain on the playlist.
 - When capacity is limited and both kinds are pending, choose RSVP confirmations and attendee-facing event updates before announcement emails.
+- An allowlisted host can approve a track and add it to their own Spotify playlist. A confirmed guest can search for tracks using only their Taal sign-in.
 - Announcement notifications go to eligible recipients as of publication. The email carries the ordinary event URL and omits private details, announcement text, and invite tokens.
