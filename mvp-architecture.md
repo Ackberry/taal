@@ -6,13 +6,15 @@
 
 - Use Firebase Authentication on the existing Blaze plan. Require a verified Taal account to browse event listings and host profiles, participate as a guest, or act as a host or delegate. Guests can sign in with Google or verify their phone by SMS.
 - Use Cloud Firestore for event data, including invite redemption, membership, and RSVP transactions.
-- Use one invite creation screen per event. It creates shared guest links or permission invites for a specific person. Multiple links can be active at once, each with its own expiration.
+- Use one invite creation screen per event. It creates shared guest links or permission invites for a specific person. Multiple links can be active at once, each with its own expiration and a host-only **Disable** action.
 
 ## Invite creation and redemption
 
 The host selects **Guest** to create a shareable membership link. The screen disables all elevated permission controls when **Guest** is selected. For a permission invite, the host selects an existing verified Taal account using its exact sign-in email or phone number and chooses the permissions to delegate. **Publish announcements** and **Edit event details** are separate permission options. Both require a current confirmed RSVP, and recipients appear on the attendee list once confirmed.
 
-The invite flow sends signed-out guests through Google sign-in or SMS verification and resumes redemption afterward. On redemption, the server verifies the Firebase session and checks the token and its expiration against server time. Redeeming either kind of link creates or returns event membership. A permission invite additionally requires the intended verified account and records the selected permissions for that event. Check these restrictions on the server as well as in the creation screen. Apply the same RSVP and waitlist rules to all invite recipients. Check the event block list for the verified account before creating membership or grants. Rate-limit redemption by event and account across links so changing the link cannot reset the limit. Blocked attempts generate no host notifications.
+The invite flow sends signed-out guests through Google sign-in or SMS verification and resumes redemption afterward. On redemption, the server verifies the Firebase session and checks the token, whether the host disabled it, and its expiration against server time. Redeeming either kind of link creates or returns event membership. A permission invite additionally requires the intended verified account and records the selected permissions for that event. Check these restrictions on the server as well as in the creation screen. Apply the same RSVP and waitlist rules to all invite recipients. Check the event block list for the verified account before creating membership or grants. Rate-limit redemption by event and account across links so changing the link cannot reset the limit. Blocked attempts generate no host notifications.
+
+Store the disable timestamp on the individual Firestore invite record. Read the invite in the same transaction that creates membership or grants so a redemption ordered after disabling fails. Existing memberships, RSVPs, grants, and other links stay active under their usual rules.
 
 ## Access by event state
 
@@ -35,7 +37,7 @@ Exact details include the time, location, and private reference images. The serv
 | --- | --- |
 | Host account | A Firebase user ID with the ability to host, assigned through the owner's separate host invite flow. |
 | Event | The owning host, locked-card listing fields, private details, capacity, and song request settings. The event has a stable URL for normal navigation and notifications. |
-| Event invite | An event-scoped token with an expiration. A guest invite admits verified guests. A permission invite identifies the intended account and its selected permissions. |
+| Event invite | An event-scoped token with an expiration and an optional disable timestamp. A guest invite admits verified guests. A permission invite identifies the intended account and its selected permissions. |
 | Event participant | One record per event and Firebase user ID. It holds membership status, current RSVP status, and the waitlist position for an active waitlisted RSVP. A canceled guest can rejoin by redeeming a live invite and submitting a new RSVP. A host-removed record stays on the event’s block list until the event host clears it there. |
 | Event permission grant | A host-managed grant for one event, attendee account, and permission. The attendee needs a current confirmed RSVP to use a posting or editing grant. |
 | Event announcement | The event, author, content, and publication time. Keep existing posts available to confirmed attendees after the author loses access. |
@@ -66,6 +68,7 @@ Record notification work alongside the state change and send it after commit, wi
 - A signed-out visitor sees sign-in and account creation. Direct requests for event listings or host profiles return no protected content.
 - A verified user without membership sees only the listing when opening the ordinary URL. Redeeming the invite twice establishes one membership and leaves any active RSVP untouched.
 - Two links for one event can be redeemed while both are live. When one expires, the other still works, and a guest who already redeemed the expired link can use their existing membership through the ordinary event URL.
+- After the host disables a link, it cannot be redeemed even before expiration. Other live links still work, and prior redemptions retain their membership, RSVP status, and grants.
 - Choosing **Guest** disables the permission controls. The server rejects a guest-link creation request that includes an elevated permission.
 - The host can issue a permission invite after matching an existing verified account by exact sign-in email or phone. A verified account other than the intended recipient cannot redeem a permission invite. The intended recipient receives the selected permissions for that event.
 - A host can manually confirm an existing verified Taal account found by exact sign-in email or phone when capacity allows. A lookup that only matches a notification contact address leaves the attendee list and available spots unchanged.
