@@ -11,6 +11,7 @@
 
 - Require a verified Taal account to browse event listings, view host profiles, host events, redeem an event invite, RSVP, submit song requests, or exercise delegated event permissions. The MVP homepage offers sign-in and account creation to signed-out visitors. Additional signed-out homepage content is deferred. [GitHub issue #7](https://github.com/Ackberry/taal/issues/7)
 - Verify each guest through Firebase Authentication before allowing them to redeem an event invite or submit song requests. The guest chooses either Google sign-in or phone verification by SMS.
+- Accept only U.S. phone numbers for phone-based features, including SMS sign-in, phone-based account lookup, and waitlist approval texts.
 - A live invite link opens a verification screen for signed-out guests. An invalid, expired, or disabled invite opens the unavailable page immediately, before sign-in. Verify the guest session on the server and enforce the event membership and RSVP rules below.
 - Use the Firebase user ID to identify the guest independently of their verification method. Allow additional verification methods in the future.
 

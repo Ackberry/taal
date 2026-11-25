@@ -6,7 +6,7 @@
 
 - Use one Next.js App Router project for the guest pages, host dashboard, and server endpoints. Run the server code on Node.js. [Next.js App Router](https://nextjs.org/docs/app)
 - Deploy the Next.js app as one web service on the existing Railway Hobby plan. Its included resource usage is shared with other Railway usage on the plan. [Railway pricing](https://docs.railway.com/pricing/plans)
-- Use Firebase Authentication on the existing Blaze plan. Require a verified Taal account to browse event listings and host profiles, participate as a guest, or act as a host or delegate. Guests can sign in with Google or verify their phone by SMS.
+- Use Firebase Authentication on the existing Blaze plan. Require a verified Taal account to browse event listings and host profiles, participate as a guest, or act as a host or delegate. Guests can sign in with Google or verify a U.S. phone number by SMS.
 - Use Cloud Firestore for event data, including invite redemption, membership, and RSVP transactions.
 - Use Cloud Storage for Firebase for event photos and reference images. Choose an eligible U.S. region when provisioning the bucket. [Firebase Storage locations](https://firebase.google.com/docs/storage/locations)
 - Use Brevo’s free transactional email plan for confirmation, event update, and announcement emails. [Brevo free-plan limits](https://help.brevo.com/hc/en-us/articles/208580669-FAQs-What-are-the-limits-of-the-Free-plan)
@@ -16,6 +16,10 @@
 ## Deployment
 
 Deploy the Next.js Node.js service from GitHub on Railway. Connect it to Firebase Authentication and Cloud Firestore through the Firebase Admin SDK. Supply Firebase server credentials and the Brevo and Spotify secrets as server-only Railway variables. [Railway variables](https://docs.railway.com/variables) · [Firebase Admin SDK setup](https://firebase.google.com/docs/admin/setup)
+
+## U.S. phone numbers
+
+Set Firebase Authentication’s SMS region policy to allow the United States. Reuse one server-side validator for phone input, account lookup, and SMS recipients. Validate the U.S. numbering region before normalizing accepted numbers to E.164. The `+1` country calling code is shared with other regions. [Firebase SMS region policy](https://firebase.google.com/docs/auth/faq-and-troubleshooting#how-can-i-prevent-sms-abuse-when-using-phone-authentication) · [Google libphonenumber](https://github.com/google/libphonenumber)
 
 ## Event media
 
@@ -97,6 +101,7 @@ Allowlist the pilot hosts in the Spotify Developer Dashboard. Each host connects
 - Two links for one event can be redeemed while both are live. When one expires, the other still works, and a guest who already redeemed the expired link can use their existing membership through the ordinary event URL.
 - After the host disables a link, it cannot be redeemed even before expiration. Other live links still work, and prior redemptions retain their membership, RSVP status, and grants.
 - A host can create multiple guest links with custom URL paths for one event. Each link includes its own random suffix. The readable path alone grants no membership. The full live path opens the standard guest invite flow and follows the same RSVP and waitlist rules.
+- A Canadian number with a `+1` prefix is rejected for SMS sign-in, phone lookup, and waitlist texts.
 - A host can manually confirm an existing verified Taal account found by exact sign-in email or phone when capacity allows. A lookup that only matches a notification contact address leaves the attendee list and available spots unchanged.
 - With one remaining spot and two simultaneous RSVP submissions, one is confirmed and the other is waitlisted. When the confirmed guest cancels, the longest-waiting guest is promoted and can read prior announcements.
 - A confirmed guest without a grant can read the board. Once granted permission, they can publish for that event. After revocation, a direct publish request fails even from a page opened before the revocation.
