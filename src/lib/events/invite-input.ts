@@ -1,4 +1,5 @@
-export const eventIdPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+import { eventIdPattern } from "./event-record";
+
 export const inviteSlugPattern = eventIdPattern;
 export const inviteSlugMaxLength = 80;
 const inviteTokenLength = 43;

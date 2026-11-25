@@ -73,3 +73,11 @@ Errors return `{ code, message }`. Expect `400` for invalid input, missing expir
 Errors contain `{ code, message }`. Expect `400` for a missing invite value, `401` for a missing or invalid session, `403` for the wrong origin, `404` for an unavailable invite, `415` for a non-JSON request, and `503` when redemption is unavailable. After 10 attempts against matching links in a 10-minute window for the same event and account, further attempts return `429` with a `Retry-After` header in seconds. Attempts by a blocked account count toward the limit.
 
 The browser entry point is `GET /invite/{slug}-{token}`. It checks availability on the server before showing sign-in. An invalid, expired, or disabled link returns the default 404. After Google or SMS verification, the browser reloads that same invite and sends the redemption request. On success it navigates to `/events/{eventId}`.
+
+## Event view interface
+
+`GET /events/{eventId}` asks signed-out guests to sign in and returns them to the same URL. A verified account without access receives the default 404. Opening the event URL does not create membership.
+
+`GET /api/events/{eventId}` requires a verified session. Active guests receive `{ name, role: "guest", rsvpStatus }`, with RSVP status `none`, `waitlisted`, or `confirmed`. Confirmed guests also receive `details: { startAt }`. The event owner receives `{ name, role: "host", details: { startAt } }`. The start time is an ISO timestamp or null for TBA. Both the page and endpoint use the current membership and RSVP status to determine which fields to return.
+
+Errors contain `{ code, message }`. Expect `401` for a missing or invalid session, `404` for a missing event or an account without access, and `503` when event data is unavailable.

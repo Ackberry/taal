@@ -179,3 +179,15 @@ button:disabled {
   flex-wrap: wrap;
   gap: 0.5rem;
 }
+
+.event-page h1 {
+  overflow-wrap: anywhere;
+}
+
+.event-page h2 {
+  font-size: 1.25rem;
+}
+
+.event-page dd {
+  margin-inline-start: 0;
+}

@@ -2,7 +2,7 @@
 
 import { notFound } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { eventIdPattern } from "@/lib/events/invite-input";
+import { isEventId } from "@/lib/events/event-record";
 
 type Redemption =
   | { status: "redeemed"; eventId: string }
@@ -23,7 +23,7 @@ async function redeemInvite(segment: string): Promise<Redemption> {
     if (response.status === 401) return { status: "sign_in_required" };
 
     const body = await response.json();
-    if (response.ok && typeof body?.eventId === "string" && eventIdPattern.test(body.eventId)) {
+    if (response.ok && typeof body?.eventId === "string" && isEventId(body.eventId)) {
       return { status: "redeemed", eventId: body.eventId };
     }
 

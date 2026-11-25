@@ -3,14 +3,9 @@ import "server-only";
 import { randomBytes } from "node:crypto";
 import { getFirestore, Timestamp, type Transaction } from "firebase-admin/firestore";
 import { getFirebaseAdminApp } from "@/lib/firebase/admin";
-import { eventIdPattern, type HostInvite, type InviteInput } from "./invite-input";
+import { isEventId, type EventRecord } from "./event-record";
+import type { HostInvite, InviteInput } from "./invite-input";
 import type { InviteRecord } from "./invite-record";
-
-type EventRecord = {
-  ownerUid: string;
-  name: string;
-  startAt: Timestamp | null;
-};
 
 export class HostInviteError extends Error {
   constructor(readonly code: "not_found" | "expiration_required" | "expiration_in_past") {
@@ -38,7 +33,7 @@ export class HostInvites {
   }
 
   private async ownedEvent(transaction: Transaction, eventId: string, uid: string) {
-    if (eventId.length > 80 || !eventIdPattern.test(eventId)) {
+    if (!isEventId(eventId)) {
       throw new HostInviteError("not_found");
     }
     const event = (await transaction.get(this.events.doc(eventId))).data() as EventRecord | undefined;

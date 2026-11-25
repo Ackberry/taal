@@ -1,22 +1,13 @@
 import "server-only";
 
-import { createHash } from "node:crypto";
 import { getFirestore, Timestamp } from "firebase-admin/firestore";
 import { getFirebaseAdminApp } from "@/lib/firebase/admin";
+import { eventAccountKey, type EventParticipant } from "./event-participant";
 import { parseGuestInviteSegment } from "./invite-input";
 import type { InviteRecord } from "./invite-record";
 
 const attemptLimit = 10;
 const windowDurationMs = 10 * 60 * 1_000;
-
-export type EventParticipant = {
-  uid: string;
-  membershipStatus: "active" | "canceled" | "removed";
-  blockedAt: Timestamp | null;
-  rsvpStatus: "none" | "waitlisted" | "confirmed";
-  waitlistPosition: number | null;
-  joinedAt: Timestamp;
-};
 
 type AttemptWindow = { count: number; resetsAt: Timestamp };
 
@@ -53,7 +44,7 @@ export class InviteRedemption {
       if (!invite || invite.slug !== link.slug) return { status: "unavailable" };
 
       const event = this.db.collection("events").doc(invite.eventId);
-      const accountKey = createHash("sha256").update(uid).digest("hex");
+      const accountKey = eventAccountKey(uid);
       const participantRef = event.collection("participants").doc(accountKey);
       const attemptRef = event.collection("inviteRedemptionAttempts").doc(accountKey);
       const [eventSnapshot, participantSnapshot, attemptSnapshot] = await transaction.getAll(
