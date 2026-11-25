@@ -27,7 +27,7 @@ function getErrorMessage(error: unknown, fallback: string): string {
   return fallback;
 }
 
-export default function SignInForm() {
+export default function SignInForm({ returnPath = "/account" }: { returnPath?: string }) {
   const [phone, setPhone] = useState("");
   const [code, setCode] = useState("");
   const [confirmation, setConfirmation] = useState<ConfirmationResult | null>(null);
@@ -54,7 +54,7 @@ export default function SignInForm() {
     try {
       const credential = await signInWithPopup(getFirebaseBrowserAuth(), new GoogleAuthProvider());
       await startBrowserSession(credential);
-      window.location.replace("/account");
+      window.location.replace(returnPath);
     } catch (error) {
       setError(getErrorMessage(error, "We couldn’t sign you in with Google. Try again."));
       setPending(null);
@@ -102,7 +102,7 @@ export default function SignInForm() {
     try {
       const credential = await confirmation.confirm(code);
       await startBrowserSession(credential);
-      window.location.replace("/account");
+      window.location.replace(returnPath);
     } catch (error) {
       if (error instanceof BrowserSessionError) resetCode();
       setError(getErrorMessage(error, "We couldn’t verify the code. Try again."));
