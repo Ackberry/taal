@@ -1,0 +1,101 @@
+:root {
+  color-scheme: light;
+  font-family: system-ui, sans-serif;
+  color: #1d1b20;
+  background: #f7f6f4;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+.page {
+  width: min(100% - 2rem, 28rem);
+  margin: 0 auto;
+  padding-block: clamp(2rem, 10vh, 6rem);
+}
+
+button,
+input {
+  font: inherit;
+}
+
+:focus-visible {
+  outline: 3px solid #5b3c96;
+  outline-offset: 3px;
+}
+
+h1 {
+  margin: 0 0 1.5rem;
+}
+
+.sign-in-options,
+.stack {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.stack p,
+.error {
+  margin: 0;
+}
+
+.stack label {
+  font-weight: 600;
+}
+
+input,
+.button,
+.text-button {
+  min-height: 2.75rem;
+  padding: 0.625rem 0.875rem;
+  border-radius: 0.5rem;
+}
+
+input {
+  width: 100%;
+  border: 1px solid #7b747e;
+  color: inherit;
+  background: white;
+}
+
+.button,
+.text-button {
+  cursor: pointer;
+}
+
+.button {
+  border: 1px solid #402472;
+  background: #402472;
+  color: white;
+  font-weight: 600;
+}
+
+.button-secondary,
+.text-button {
+  background: transparent;
+  color: #402472;
+}
+
+.text-button {
+  border: 0;
+  text-decoration: underline;
+}
+
+button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.option-divider {
+  text-align: center;
+  color: #625a66;
+}
+
+.error {
+  color: #9e2028;
+}
