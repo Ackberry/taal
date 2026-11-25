@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { FirebaseSessions, InvalidSessionCredentials, sessionCookieName, sessionCookieOptions } from "@/lib/auth/session";
 import { checkSameOrigin } from "@/lib/http/same-origin";
 
@@ -52,9 +52,19 @@ export async function POST(request: Request) {
   }
 }
 
-export function DELETE(request: Request) {
+export async function DELETE(request: NextRequest) {
   const originError = getOriginError(request);
   if (originError) return originError;
+
+  const cookie = request.cookies.get(sessionCookieName)?.value;
+  if (cookie) {
+    try {
+      await new FirebaseSessions().revoke(cookie);
+    } catch {
+      console.error("Taal could not revoke a session.");
+      return sessionError(503, "session_unavailable", "We couldn’t sign you out. Try again.");
+    }
+  }
 
   const response = new NextResponse(null, { status: 204, headers });
   response.cookies.set(sessionCookieName, "", { ...sessionCookieOptions, maxAge: 0 });

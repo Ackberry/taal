@@ -1,12 +1,14 @@
 import "server-only";
 
 import { applicationDefault, cert, getApps, initializeApp, type AppOptions } from "firebase-admin/app";
-import { getAuth } from "firebase-admin/auth";
 
 function getAppOptions(projectId: string): AppOptions {
-  if (process.env.FIREBASE_AUTH_EMULATOR_HOST) {
-    if (process.env.NODE_ENV === "production" || !projectId.startsWith("demo-")) {
-      throw new Error("The Auth emulator requires a local demo project.");
+  const authEmulator = process.env.FIREBASE_AUTH_EMULATOR_HOST;
+  const firestoreEmulator = process.env.FIRESTORE_EMULATOR_HOST;
+  if (authEmulator || firestoreEmulator) {
+    if (!authEmulator || !firestoreEmulator ||
+        process.env.NODE_ENV === "production" || !projectId.startsWith("demo-")) {
+      throw new Error("Use both Firebase emulators with a local demo project.");
     }
 
     return { projectId };
@@ -25,13 +27,12 @@ function getAppOptions(projectId: string): AppOptions {
   return { projectId, credential: cert(serviceAccount) };
 }
 
-export function getFirebaseAdminAuth() {
+export function getFirebaseAdminApp() {
   const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
   if (!projectId) {
     throw new Error("The Firebase project ID is required.");
   }
 
-  const app = getApps().find(({ name }) => name === "[DEFAULT]") ??
+  return getApps().find(({ name }) => name === "[DEFAULT]") ??
     initializeApp(getAppOptions(projectId));
-  return getAuth(app);
 }

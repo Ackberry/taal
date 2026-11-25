@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import test from "node:test";
 
 const appOrigin = "http://localhost:3000";
@@ -74,7 +75,7 @@ test("a valid Firebase token for a non-U.S. phone cannot create a session", asyn
   assert.equal(response.headers.get("set-cookie"), null);
 });
 
-test("a verified U.S. phone can create a session and sign out", async () => {
+test("sign-out revokes the copied cookie but keeps another session for the same account", async () => {
   const idToken = await signInWithTestPhone("+12025550122");
   const response = await exchange(idToken);
   assert.equal(response.status, 204);
@@ -84,9 +85,23 @@ test("a verified U.S. phone can create a session and sign out", async () => {
   assert.match(setCookie, /^taal_session=.+;.*HttpOnly/i);
   assert.match(setCookie, /SameSite=lax/i);
   const cookie = setCookie.split(";")[0];
+  const otherSession = await exchange(idToken);
+  assert.equal(otherSession.status, 204);
+  const otherCookie = otherSession.headers.get("set-cookie").split(";")[0];
+  assert.notEqual(cookie, otherCookie);
+
   const protectedPage = await account(cookie);
   assert.equal(protectedPage.status, 200);
   assert.match(protectedPage.headers.get("cache-control"), /no-store/);
+  assert.equal((await account(otherCookie)).status, 200);
+
+  const cookieValue = cookie.slice("taal_session=".length);
+  const digest = createHash("sha256").update(cookieValue).digest("hex");
+  const clientRead = await fetch(
+    `http://127.0.0.1:8080/v1/projects/demo-taal/databases/(default)/documents/authSessions/${digest}`,
+    { headers: { authorization: `Bearer ${idToken}` } },
+  );
+  assert.equal(clientRead.status, 403);
 
   const logout = await fetch(`${appOrigin}/api/session`, {
     method: "DELETE",
@@ -94,4 +109,9 @@ test("a verified U.S. phone can create a session and sign out", async () => {
   });
   assert.equal(logout.status, 204);
   assert.match(logout.headers.get("set-cookie"), /^taal_session=;.*Max-Age=0/i);
+
+  const replay = await account(cookie);
+  assert.equal(replay.status, 307);
+  assert.equal(replay.headers.get("location"), "/");
+  assert.equal((await account(otherCookie)).status, 200);
 });

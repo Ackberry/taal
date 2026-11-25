@@ -1,9 +1,11 @@
 import "server-only";
 
-import type { Auth, DecodedIdToken } from "firebase-admin/auth";
+import { createHash, randomBytes } from "node:crypto";
+import { getAuth, type DecodedIdToken } from "firebase-admin/auth";
+import { getFirestore, Timestamp } from "firebase-admin/firestore";
 import { cookies } from "next/headers";
 import { normalizeUsPhoneNumber } from "@/lib/auth/phone";
-import { getFirebaseAdminAuth } from "@/lib/firebase/admin";
+import { getFirebaseAdminApp } from "@/lib/firebase/admin";
 
 const isProduction = process.env.NODE_ENV === "production";
 export const sessionCookieName = isProduction ? "__Host-taal_session" : "taal_session";
@@ -45,8 +47,29 @@ function hasAllowedSignIn(token: DecodedIdToken): boolean {
       normalizeUsPhoneNumber(token.phone_number) !== null);
 }
 
+function unwrapFirebaseCookie(cookie: string): string | null {
+  const [sessionId, ...tokenParts] = cookie.split(".");
+  if (!/^[A-Za-z0-9_-]{43}$/.test(sessionId) || tokenParts.length !== 3) {
+    return null;
+  }
+
+  return tokenParts.join(".");
+}
+
 export class FirebaseSessions {
-  constructor(private readonly auth: Auth = getFirebaseAdminAuth()) {}
+  private readonly auth;
+  private readonly records;
+
+  constructor(app = getFirebaseAdminApp()) {
+    this.auth = getAuth(app);
+    this.records = getFirestore(app).collection("authSessions");
+  }
+
+  private recordFor(cookie: string) {
+    // Hash the full cookie to bind the unique session ID to its Firebase credential.
+    const digest = createHash("sha256").update(cookie).digest("hex");
+    return this.records.doc(digest);
+  }
 
   async create(idToken: string): Promise<string> {
     try {
@@ -60,9 +83,13 @@ export class FirebaseSessions {
         throw new InvalidSessionCredentials();
       }
 
-      return await this.auth.createSessionCookie(idToken, {
-        expiresIn: sessionCookieOptions.maxAge * 1000,
-      });
+      const expiresIn = sessionCookieOptions.maxAge * 1000;
+      const expiresAt = Timestamp.fromMillis(Date.now() + expiresIn);
+      const firebaseCookie = await this.auth.createSessionCookie(idToken, { expiresIn });
+      const cookie = `${randomBytes(32).toString("base64url")}.${firebaseCookie}`;
+
+      await this.recordFor(cookie).create({ expiresAt });
+      return cookie;
     } catch (error) {
       if (isInvalidCredential(error)) {
         throw new InvalidSessionCredentials();
@@ -72,9 +99,30 @@ export class FirebaseSessions {
   }
 
   async verify(cookie: string): Promise<{ uid: string } | null> {
+    const identity = await this.verifyIdentity(cookie, true);
+    if (!identity) return null;
+
+    const record = await this.recordFor(cookie).get();
+    const expiresAt: unknown = record.get("expiresAt");
+    return expiresAt instanceof Timestamp && expiresAt.toMillis() > Date.now()
+      ? { uid: identity.uid }
+      : null;
+  }
+
+  async revoke(cookie: string): Promise<void> {
+    // Firebase can still verify ownership for cleanup after account-wide revocation.
+    if (await this.verifyIdentity(cookie, false)) {
+      await this.recordFor(cookie).delete();
+    }
+  }
+
+  private async verifyIdentity(cookie: string, checkRevoked: boolean): Promise<DecodedIdToken | null> {
+    const firebaseCookie = unwrapFirebaseCookie(cookie);
+    if (!firebaseCookie) return null;
+
     try {
-      const claims = await this.auth.verifySessionCookie(cookie, true);
-      return hasAllowedSignIn(claims) ? { uid: claims.uid } : null;
+      const claims = await this.auth.verifySessionCookie(firebaseCookie, checkRevoked);
+      return hasAllowedSignIn(claims) ? claims : null;
     } catch (error) {
       if (isInvalidCredential(error)) {
         return null;
