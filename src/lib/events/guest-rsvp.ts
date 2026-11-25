@@ -7,6 +7,13 @@ import { isEventId, type EventRecord } from "./event-record";
 
 type RsvpOutcome = Exclude<EventParticipant["rsvpStatus"], "none">;
 
+function isClosedEmulatorTransaction(error: unknown): boolean {
+  const invalidArgument = 3;
+  return Boolean(process.env.FIRESTORE_EMULATOR_HOST) &&
+    error instanceof Error && "code" in error && error.code === invalidArgument &&
+    error.message.endsWith("Transaction is invalid or closed.");
+}
+
 export class GuestRsvp {
   constructor(private readonly db = getFirestore(getFirebaseAdminApp())) {}
 
@@ -17,7 +24,7 @@ export class GuestRsvp {
     const participants = eventRef.collection("participants");
     const guestRef = participants.doc(eventAccountKey(uid));
 
-    return this.db.runTransaction(async (transaction) => {
+    const saveRsvp = () => this.db.runTransaction(async (transaction) => {
       const [eventSnapshot, guestSnapshot] = await transaction.getAll(eventRef, guestRef);
       const event = eventSnapshot.data() as EventRecord | undefined;
       const guest = guestSnapshot.data() as EventParticipant | undefined;
@@ -56,5 +63,13 @@ export class GuestRsvp {
       });
       return rsvpStatus;
     });
+
+    try {
+      return await saveRsvp();
+    } catch (error) {
+      if (!isClosedEmulatorTransaction(error)) throw error;
+      // After a lock timeout, the emulator can reject the SDK's retry transaction ID.
+      return saveRsvp();
+    }
   }
 }
