@@ -15,6 +15,9 @@ export const sessionCookieOptions = {
   maxAge: 60 * 60 * 24 * 5,
 };
 
+const maxSignInAgeSeconds = 5 * 60;
+const signInClockSkewSeconds = 30;
+
 const invalidCredentialCodes = new Set([
   "auth/argument-error",
   "auth/invalid-id-token",
@@ -50,7 +53,10 @@ export class FirebaseSessions {
       const claims = await this.auth.verifyIdToken(idToken, true);
       const secondsSinceSignIn = Math.floor(Date.now() / 1000) - claims.auth_time;
 
-      if (!hasAllowedSignIn(claims) || secondsSinceSignIn < 0 || secondsSinceSignIn > 5 * 60) {
+      const hasRecentSignIn = secondsSinceSignIn >= -signInClockSkewSeconds &&
+        secondsSinceSignIn <= maxSignInAgeSeconds;
+
+      if (!hasAllowedSignIn(claims) || !hasRecentSignIn) {
         throw new InvalidSessionCredentials();
       }
 
