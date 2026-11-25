@@ -3,15 +3,10 @@ import SignInForm from "@/app/auth/sign-in-form";
 import { getCurrentSession } from "@/lib/auth/session";
 import { readEventView } from "@/lib/events/event-access";
 import { isEventId } from "@/lib/events/event-record";
+import RsvpSection from "./rsvp-section";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-const rsvpLabels = {
-  none: "You haven’t RSVPed yet.",
-  waitlisted: "You’re on the waitlist.",
-  confirmed: "You’re going.",
-};
 
 const timeFormat = new Intl.DateTimeFormat("en-US", {
   dateStyle: "long", timeStyle: "short", timeZone: "UTC",
@@ -38,10 +33,7 @@ export default async function EventPage({ params }: PageProps<"/events/[eventId]
     <main className="page event-page">
       <h1>{event.name}</h1>
       {event.role === "guest" && (
-        <section aria-labelledby="event-rsvp">
-          <h2 id="event-rsvp">RSVP status</h2>
-          <p>{rsvpLabels[event.rsvpStatus]}</p>
-        </section>
+        <RsvpSection eventId={eventId} rsvpStatus={event.rsvpStatus} />
       )}
       {"details" in event && (
         <section aria-labelledby="event-details">

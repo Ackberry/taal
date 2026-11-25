@@ -188,6 +188,10 @@ button:disabled {
   font-size: 1.25rem;
 }
 
+.event-page .button[aria-disabled="true"] {
+  cursor: wait;
+}
+
 .event-page dd {
   margin-inline-start: 0;
 }

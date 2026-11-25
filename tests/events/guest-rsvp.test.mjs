@@ -42,6 +42,12 @@ function submit(event, account, origin = appOrigin) {
   });
 }
 
+async function eventPage(event, account) {
+  const response = await fetch(appOrigin + "/events/" + event.id, { headers: { cookie: account.cookie } });
+  assert.equal(response.status, 200);
+  return response.text();
+}
+
 async function savedOutcome(response) {
   assert.equal(response.status, 200, await response.clone().text());
   assert.equal(response.headers.get("cache-control"), "no-store");
@@ -69,6 +75,8 @@ test("concurrent RSVPs for the final spot save one outcome per guest", async () 
   const event = await createEvent({ capacity: 1 });
   const guests = await Promise.all([signIn(), signIn()]);
   const members = await Promise.all(guests.map((guest) => addMember(event, guest)));
+  const rsvpButton = /<button[^>]*>RSVP<\/button>/;
+  assert.match(await eventPage(event, guests[0]), rsvpButton);
   const outcomes = await Promise.all(guests.map(async (guest) => savedOutcome(await submit(event, guest))));
   assert.deepEqual([...outcomes].sort(), ["confirmed", "waitlisted"]);
 
@@ -85,6 +93,16 @@ test("concurrent RSVPs for the final spot save one outcome per guest", async () 
     assert.deepEqual(await view.json(), {
       name: "Test event", role: "guest", rsvpStatus: outcomes[index], ...details,
     });
+
+    const page = await eventPage(event, guest);
+    assert.doesNotMatch(page, rsvpButton);
+    if (outcomes[index] === "confirmed") {
+      assert.match(page, /You’re going/);
+      assert.ok(page.includes(startAt));
+    } else {
+      assert.match(page, /You’re on the waitlist/);
+      assert.ok(!page.includes(startAt));
+    }
   }
   assert.equal((await event.get()).get("rsvpSequence"), 2);
 });
