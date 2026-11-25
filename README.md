@@ -81,3 +81,11 @@ The browser entry point is `GET /invite/{slug}-{token}`. It checks availability 
 `GET /api/events/{eventId}` requires a verified session. Active guests receive `{ name, role: "guest", rsvpStatus }`, with RSVP status `none`, `waitlisted`, or `confirmed`. Confirmed guests also receive `details: { startAt }`. The event owner receives `{ name, role: "host", details: { startAt } }`. The start time is an ISO timestamp or null for TBA. Both the page and endpoint use the current membership and RSVP status to determine which fields to return.
 
 Errors contain `{ code, message }`. Expect `401` for a missing or invalid session, `404` for a missing event or an account without access, and `503` when event data is unavailable.
+
+## RSVP interface
+
+`POST /api/events/{eventId}/rsvp` requires a verified session and the app’s origin. Send no request body. The server uses the event ID and the signed-in account’s membership to decide the outcome. A successful response returns `200` and `{ rsvpStatus }` with `confirmed` or `waitlisted`. Repeat submissions return the guest’s current saved status. Fetch the event view for details available to that guest.
+
+Errors contain `{ code, message }`. Expect `401` for a missing or invalid session, `403` for the wrong origin, `404` for an unavailable event or ineligible account, and `503` if RSVP is unavailable. Responses use `Cache-Control: no-store`.
+
+With Next.js and both emulators running, run `npm run test:rsvp` to verify access, capacity, duplicate submissions, and waitlist order.

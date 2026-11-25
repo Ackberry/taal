@@ -14,7 +14,8 @@
     "test:auth": "node --test tests/auth/session.test.mjs",
     "test:invites": "node --test tests/events/host-invites.test.mjs",
     "seed:test-event": "node scripts/seed-test-event.mjs",
-    "test:redemption": "node --test tests/events/invite-redemption.test.mjs"
+    "test:redemption": "node --test tests/events/invite-redemption.test.mjs",
+    "test:rsvp": "node --test tests/events/guest-rsvp.test.mjs"
   },
   "dependencies": {
     "firebase": "^13.4.0",

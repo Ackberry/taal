@@ -2,7 +2,7 @@ import "server-only";
 
 import { getFirestore } from "firebase-admin/firestore";
 import { getFirebaseAdminApp } from "@/lib/firebase/admin";
-import { eventAccountKey, type EventParticipant } from "./event-participant";
+import { eventAccountKey, isActiveEventGuest, type EventParticipant } from "./event-participant";
 import { isEventId, type EventRecord } from "./event-record";
 
 type EventDetails = { startAt: string | null };
@@ -30,7 +30,7 @@ export async function readEventView(eventId: string, uid: string): Promise<Event
   if (event.ownerUid === uid) return { name: event.name, role: "host", details: eventDetails(event) };
 
   const guest = participantSnapshot.data() as EventParticipant | undefined;
-  if (guest?.membershipStatus !== "active" || guest.blockedAt) return null;
+  if (!isActiveEventGuest(guest)) return null;
 
   const base = { name: event.name, role: "guest" } as const;
   switch (guest.rsvpStatus) {
