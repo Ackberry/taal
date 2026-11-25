@@ -4,20 +4,12 @@ import { randomBytes } from "node:crypto";
 import { getFirestore, Timestamp, type Transaction } from "firebase-admin/firestore";
 import { getFirebaseAdminApp } from "@/lib/firebase/admin";
 import { eventIdPattern, type HostInvite, type InviteInput } from "./invite-input";
+import type { InviteRecord } from "./invite-record";
 
 type EventRecord = {
   ownerUid: string;
   name: string;
   startAt: Timestamp | null;
-};
-
-type InviteRecord = {
-  eventId: string;
-  slug: string;
-  createdAt: Timestamp;
-  expiresAt: Timestamp;
-  expirationMode: HostInvite["expirationMode"];
-  disabledAt: Timestamp | null;
 };
 
 export class HostInviteError extends Error {

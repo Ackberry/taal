@@ -1,7 +1,8 @@
 export const eventIdPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 export const inviteSlugPattern = eventIdPattern;
 export const inviteSlugMaxLength = 80;
-export const inviteTokenPattern = /^[A-Za-z0-9_-]{43}$/;
+const inviteTokenLength = 43;
+export const inviteTokenPattern = new RegExp(`^[A-Za-z0-9_-]{${inviteTokenLength}}$`);
 
 export type InviteInput = { slug: string; expiration: "event-start" | Date };
 
@@ -15,6 +16,15 @@ export type HostInvite = {
 
 export function guestInvitePath(invite: Pick<HostInvite, "slug" | "token">) {
   return `/invite/${invite.slug}-${invite.token}`;
+}
+
+export function parseGuestInviteSegment(segment: string) {
+  const separator = segment.length - inviteTokenLength - 1;
+  if (separator < 1 || separator > inviteSlugMaxLength || segment[separator] !== "-") return null;
+
+  const slug = segment.slice(0, separator);
+  const token = segment.slice(separator + 1);
+  return inviteSlugPattern.test(slug) && inviteTokenPattern.test(token) ? { slug, token } : null;
 }
 
 export function parseInviteInput(body: unknown): InviteInput | null {

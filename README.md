@@ -65,3 +65,9 @@ The host page is `/host/events/{eventId}/invites`. It redirects signed-out visit
 Successful writes return `{ token, slug, expiresAt, expirationMode, disabledAt }`. Timestamps are ISO strings and `disabledAt` is null for links the host has yet to disable. The expiration mode is `event-start` or `manual`. The share path is `/invite/{slug}-{token}`. The last 43 characters are the URL-safe token, which indexes a Firestore record containing the event ID and the exact slug. All records represent standard guest access.
 
 Errors return `{ code, message }`. Expect `400` for invalid input, missing expiration on a TBA event, or a past expiration, `401` for a missing or invalid session, `403` for the wrong origin, `404` for an inaccessible event or invite, `415` for a non-JSON request, and `503` when the service is unavailable.
+
+## Guest invite redemption interface
+
+`POST /api/invites/redeem` requires a verified session, the app’s origin, and JSON `{ invite }`. Send the full path segment after `/invite/`, including the readable slug and token. A successful response returns `200` and `{ eventId }`. Redeeming another link for the same event reuses an active membership and preserves its RSVP state.
+
+Errors contain `{ code, message }`. Expect `400` for a missing invite value, `401` for a missing or invalid session, `403` for the wrong origin, `404` for an unavailable invite, `415` for a non-JSON request, and `503` when redemption is unavailable. After 10 attempts against matching links in a 10-minute window for the same event and account, further attempts return `429` with a `Retry-After` header in seconds. Attempts by a blocked account count toward the limit.

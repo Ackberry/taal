@@ -3,36 +3,10 @@ import { execFile } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { execPath } from "node:process";
 import test from "node:test";
-import { URLSearchParams } from "node:url";
 import { promisify } from "node:util";
 
-const appOrigin = "http://localhost:3000";
-const authOrigin = "http://127.0.0.1:9099";
+import { appOrigin, signIn } from "./emulator-session.mjs";
 const exec = promisify(execFile);
-
-async function signIn() {
-  const response = await fetch(`${authOrigin}/identitytoolkit.googleapis.com/v1/accounts:signInWithIdp?key=demo-key`, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
-      requestUri: appOrigin,
-      postBody: new URLSearchParams({
-        providerId: "google.com",
-        id_token: JSON.stringify({ sub: randomUUID(), email: `${randomUUID()}@example.test`, email_verified: true }),
-      }).toString(),
-      returnSecureToken: true,
-    }),
-  });
-  assert.equal(response.status, 200);
-  const { idToken, localId: uid } = await response.json();
-  const session = await fetch(`${appOrigin}/api/session`, {
-    method: "POST",
-    headers: { origin: appOrigin, "content-type": "application/json" },
-    body: JSON.stringify({ idToken }),
-  });
-  assert.equal(session.status, 204);
-  return { uid, cookie: session.headers.get("set-cookie").split(";")[0], idToken };
-}
 
 async function seedEvent(host, start) {
   const eventId = `test-${randomUUID()}`;
