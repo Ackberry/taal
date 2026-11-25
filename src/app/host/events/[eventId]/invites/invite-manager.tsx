@@ -1,16 +1,8 @@
 "use client";
 
-import { useEffect, useState, useSyncExternalStore, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { guestInvitePath, inviteSlugMaxLength, inviteSlugPattern, type HostInvite } from "@/lib/events/invite-input";
-
-const subscribeToTimeZone = () => () => {};
-const browserTimeZone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
-const serverTimeZone = () => "UTC";
-
-function localDateTimeValue(date: Date) {
-  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
-  return local.toISOString().slice(0, 16);
-}
+import { localDateTimeValue, useBrowserTimeZone } from "@/lib/time/browser-time";
 
 export default function InviteManager({ eventId, origin, startAt, initialInvites, checkedAt }: {
   eventId: string;
@@ -19,7 +11,7 @@ export default function InviteManager({ eventId, origin, startAt, initialInvites
   initialInvites: HostInvite[];
   checkedAt: number;
 }) {
-  const timeZone = useSyncExternalStore(subscribeToTimeZone, browserTimeZone, serverTimeZone);
+  const timeZone = useBrowserTimeZone();
   const dateFormat = new Intl.DateTimeFormat("en-US", {
     dateStyle: "medium", timeStyle: "short", timeZone,
   });
