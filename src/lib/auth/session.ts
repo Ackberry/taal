@@ -1,6 +1,7 @@
 import "server-only";
 
 import type { Auth, DecodedIdToken } from "firebase-admin/auth";
+import { cookies } from "next/headers";
 import { normalizeUsPhoneNumber } from "@/lib/auth/phone";
 import { getFirebaseAdminAuth } from "@/lib/firebase/admin";
 
@@ -75,4 +76,9 @@ export class FirebaseSessions {
       throw error;
     }
   }
+}
+
+export async function getCurrentSession() {
+  const cookie = (await cookies()).get(sessionCookieName)?.value;
+  return cookie ? new FirebaseSessions().verify(cookie) : null;
 }

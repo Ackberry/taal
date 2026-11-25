@@ -13,6 +13,7 @@
     "typecheck": "next typegen && tsc --noEmit"
   },
   "dependencies": {
+    "firebase": "^13.4.0",
     "firebase-admin": "^14.5.1",
     "libphonenumber-js": "^1.13.17",
     "next": "^16.4.6",
