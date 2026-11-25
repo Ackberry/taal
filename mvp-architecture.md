@@ -10,6 +10,7 @@
 - Use Cloud Firestore for event data, including invite redemption, membership, and RSVP transactions.
 - Use Cloud Storage for Firebase for event photos and reference images. Choose an eligible U.S. region when provisioning the bucket. [Firebase Storage locations](https://firebase.google.com/docs/storage/locations)
 - Use Brevo’s free transactional email plan for confirmation, event update, and announcement emails. [Brevo free-plan limits](https://help.brevo.com/hc/en-us/articles/208580669-FAQs-What-are-the-limits-of-the-Free-plan)
+- Use Brevo’s transactional SMS service for U.S. waitlist approval texts. Set up a registered toll-free sender and prepaid SMS credits before enabling delivery. [Brevo SMS pricing](https://help.brevo.com/hc/en-us/articles/208717449-Supported-countries-and-pricing-for-SMS-messages) · [Sender registration](https://help.brevo.com/hc/en-us/articles/28255350696466-Register-a-Sender-ID-to-send-SMS-messages)
 - Run the Spotify pilot with one Development Mode app and up to five authorized Spotify accounts for hosts. Keep Premium active on the app owner’s Spotify account. [Spotify quota modes](https://developer.spotify.com/documentation/web-api/concepts/quota-modes)
 - Use one invite creation screen for guest links, with a host-chosen readable path and an automatically generated random suffix. Multiple links can be active at once, each with its own expiration and a host-only **Disable** action. The host grants elevated permissions individually after RSVP confirmation.
 
@@ -86,6 +87,8 @@ Serialize song requests, announcement publication, and delegated edits with chan
 
 Record notification work alongside the state change and send it after commit. Deliver email through Brevo’s transactional API from the server. Mark RSVP confirmations and attendee-facing event updates as higher priority than announcement emails. Select pending emails in priority order for the available daily quota. Key retries to the notification and recipient so retrying a job can skip completed sends. For a published announcement, record which guests were confirmed and had contact email at publication. Use the latest saved contact email for delivery. Use the ordinary event URL and the limited email content specified in the rules. [Notification rules](rules.md#rsvp-guest-confirmation-and-event-updates)
 
+When a guest who signed up by SMS is promoted from the waitlist, record the approval text in the same transaction as RSVP confirmation. Send it through Brevo after the transaction commits, using the guest’s verified U.S. number. Firebase Authentication sends phone verification codes.
+
 ## Spotify pilot
 
 Allowlist the pilot hosts in the Spotify Developer Dashboard. Each host connects their own Spotify account through Spotify authorization so Taal can manage that host’s event playlists. Use the app’s server-side credentials for catalog search and check the guest’s Taal membership and confirmed RSVP before calling Spotify. Test both playlist writes and guest search against the pilot app. [Spotify authorization](https://developer.spotify.com/documentation/web-api/concepts/authorization)
@@ -112,6 +115,7 @@ Allowlist the pilot hosts in the Spotify Developer Dashboard. Each host connects
 - After host removal, event invite links fail for that account at that event. Repeated attempts are rate-limited across links and generate no host notification. Only the host can clear the block from the event’s block list.
 - After the host clears a block, the guest can redeem a live link and RSVP again with standard guest access.
 - After a cancellation or host removal, direct requests for private event details and board content fail. A guest's canceled song requests no longer count toward event totals, and tracks already on Spotify remain on the playlist.
+- A guest who signed up by SMS receives a Brevo approval text after their waitlist promotion commits. Phone sign-in verification codes are sent by Firebase.
 - When capacity is limited and both kinds are pending, choose RSVP confirmations and attendee-facing event updates before announcement emails.
 - An allowlisted host can approve a track and add it to their own Spotify playlist. A confirmed guest can search for tracks using only their Taal sign-in.
 - Announcement notifications go to eligible recipients as of publication. The email carries the ordinary event URL and omits private details, announcement text, and invite tokens.
