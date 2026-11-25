@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { FirebaseSessions, InvalidSessionCredentials, sessionCookieName, sessionCookieOptions } from "@/lib/auth/session";
+import { checkSameOrigin } from "@/lib/http/same-origin";
 
 export const runtime = "nodejs";
 
@@ -9,25 +10,19 @@ function sessionError(status: number, code: string, message: string) {
   return NextResponse.json({ code, message }, { status, headers });
 }
 
-function validateOrigin(request: Request): NextResponse | null {
-  const production = process.env.NODE_ENV === "production";
-  const configuredOrigin = process.env.TAAL_APP_ORIGIN ??
-    (production ? "" : "http://localhost:3000");
-  const origin = URL.canParse(configuredOrigin) ? new URL(configuredOrigin) : null;
-
-  if (!origin || (origin.protocol !== "https:" && (production || origin.protocol !== "http:"))) {
-    return sessionError(503, "session_unavailable", "Sign-in is unavailable right now.");
+function getOriginError(request: Request): NextResponse | null {
+  switch (checkSameOrigin(request)) {
+    case "unavailable":
+      return sessionError(503, "session_unavailable", "Sign-in is unavailable right now.");
+    case "invalid":
+      return sessionError(403, "invalid_origin", "This request couldn’t be verified.");
+    case "allowed":
+      return null;
   }
-
-  if (request.headers.get("origin") !== origin.origin) {
-    return sessionError(403, "invalid_origin", "This request couldn’t be verified.");
-  }
-
-  return null;
 }
 
 export async function POST(request: Request) {
-  const originError = validateOrigin(request);
+  const originError = getOriginError(request);
   if (originError) return originError;
 
   const contentType = request.headers.get("content-type")?.split(";")[0].trim().toLowerCase();
@@ -58,7 +53,7 @@ export async function POST(request: Request) {
 }
 
 export function DELETE(request: Request) {
-  const originError = validateOrigin(request);
+  const originError = getOriginError(request);
   if (originError) return originError;
 
   const response = new NextResponse(null, { status: 204, headers });
