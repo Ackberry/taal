@@ -99,3 +99,83 @@ button:disabled {
 .error {
   color: #9e2028;
 }
+
+.invite-page {
+  width: min(100% - 2rem, 36rem);
+}
+
+.invite-event-name,
+.invite-meta {
+  color: #625a66;
+  overflow-wrap: anywhere;
+}
+
+.invite-event-name {
+  margin: 0 0 0.25rem;
+}
+
+.invite-page h2 {
+  font-size: 1.25rem;
+  margin: 0 0 0.5rem;
+}
+
+.invite-panel h3 {
+  margin: 0;
+  font-size: 1rem;
+  overflow-wrap: anywhere;
+}
+
+.invite-panel {
+  padding: clamp(0.875rem, 3vw, 1.25rem);
+  border: 1px solid #ded8e2;
+  border-radius: 0.75rem;
+  background: white;
+}
+
+.invite-expiration {
+  padding: 0;
+  margin: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.invite-expiration legend {
+  padding: 0;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+}
+
+.invite-expiration .invite-choice {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.75rem;
+  font-weight: 400;
+}
+
+.invite-choice input {
+  width: 1rem;
+  min-height: auto;
+  margin: 0;
+  flex: none;
+  accent-color: #402472;
+}
+
+.invite-feedback {
+  margin-block: 1rem;
+}
+
+.invite-feedback p {
+  margin: 0;
+}
+
+.invite-list {
+  list-style: none;
+  padding: 0;
+}
+
+.invite-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}

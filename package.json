@@ -11,7 +11,9 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "next typegen && tsc --noEmit",
-    "test:auth": "node --test tests/auth/session.test.mjs"
+    "test:auth": "node --test tests/auth/session.test.mjs",
+    "test:invites": "node --test tests/events/host-invites.test.mjs",
+    "seed:test-event": "node scripts/seed-test-event.mjs"
   },
   "dependencies": {
     "firebase": "^13.4.0",

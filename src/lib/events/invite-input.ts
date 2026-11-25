@@ -1,0 +1,37 @@
+export const eventIdPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+export const inviteSlugPattern = eventIdPattern;
+export const inviteSlugMaxLength = 80;
+export const inviteTokenPattern = /^[A-Za-z0-9_-]{43}$/;
+
+export type InviteInput = { slug: string; expiration: "event-start" | Date };
+
+export type HostInvite = {
+  token: string;
+  slug: string;
+  expiresAt: string;
+  expirationMode: "event-start" | "manual";
+  disabledAt: string | null;
+};
+
+export function guestInvitePath(invite: Pick<HostInvite, "slug" | "token">) {
+  return `/invite/${invite.slug}-${invite.token}`;
+}
+
+export function parseInviteInput(body: unknown): InviteInput | null {
+  if (!body || typeof body !== "object" || !("slug" in body) ||
+      typeof body.slug !== "string" || body.slug.length > inviteSlugMaxLength ||
+      !inviteSlugPattern.test(body.slug)) {
+    return null;
+  }
+
+  if (!("expiresAt" in body)) return { slug: body.slug, expiration: "event-start" };
+  if (typeof body.expiresAt !== "string" ||
+      !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(body.expiresAt)) {
+    return null;
+  }
+
+  const expiration = new Date(body.expiresAt);
+  return Number.isFinite(expiration.getTime()) && expiration.toISOString() === body.expiresAt
+    ? { slug: body.slug, expiration }
+    : null;
+}
