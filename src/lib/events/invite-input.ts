@@ -1,3 +1,4 @@
+import { parseUtcTimestamp } from "@/lib/time/utc-timestamp";
 import { eventIdPattern } from "./event-record";
 
 export const inviteSlugPattern = eventIdPattern;
@@ -36,13 +37,6 @@ export function parseInviteInput(body: unknown): InviteInput | null {
   }
 
   if (!("expiresAt" in body)) return { slug: body.slug, expiration: "event-start" };
-  if (typeof body.expiresAt !== "string" ||
-      !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(body.expiresAt)) {
-    return null;
-  }
-
-  const expiration = new Date(body.expiresAt);
-  return Number.isFinite(expiration.getTime()) && expiration.toISOString() === body.expiresAt
-    ? { slug: body.slug, expiration }
-    : null;
+  const expiration = parseUtcTimestamp(body.expiresAt);
+  return expiration ? { slug: body.slug, expiration } : null;
 }

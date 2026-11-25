@@ -6,6 +6,7 @@ export type EventRecord = {
   startAt: Timestamp | null;
   capacity?: number | null;
   rsvpSequence?: number;
+  creationFingerprint?: string;
 };
 
 export const eventIdPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
