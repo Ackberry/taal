@@ -9,6 +9,7 @@
 - Use Firebase Authentication on the existing Blaze plan. Require a verified Taal account to browse event listings and host profiles, participate as a guest, or act as a host or delegate. Guests can sign in with Google or verify a U.S. phone number by SMS.
 - Use Cloud Firestore for event data, including invite redemption, membership, and RSVP transactions.
 - Use Cloud Storage for Firebase for event photos and reference images. Choose an eligible U.S. region when provisioning the bucket. [Firebase Storage locations](https://firebase.google.com/docs/storage/locations)
+- Use a Firestore creation trigger and Firebase task queue functions backed by Google Cloud Tasks for notification delivery. [Firestore triggers](https://firebase.google.com/docs/functions/firestore-events) · [Firebase task queues](https://firebase.google.com/docs/functions/task-functions)
 - Use Brevo’s free transactional email plan for confirmation, event update, and announcement emails. [Brevo free-plan limits](https://help.brevo.com/hc/en-us/articles/208580669-FAQs-What-are-the-limits-of-the-Free-plan)
 - Use Brevo’s transactional SMS service for U.S. waitlist approval texts. Set up a registered toll-free sender and prepaid SMS credits before enabling delivery. [Brevo SMS pricing](https://help.brevo.com/hc/en-us/articles/208717449-Supported-countries-and-pricing-for-SMS-messages) · [Sender registration](https://help.brevo.com/hc/en-us/articles/28255350696466-Register-a-Sender-ID-to-send-SMS-messages)
 - Run the Spotify pilot with one Development Mode app and up to five authorized Spotify accounts for hosts. Keep Premium active on the app owner’s Spotify account. [Spotify quota modes](https://developer.spotify.com/documentation/web-api/concepts/quota-modes)
@@ -16,7 +17,7 @@
 
 ## Deployment
 
-Deploy the Next.js Node.js service from GitHub on Railway. Connect it to Firebase Authentication and Cloud Firestore through the Firebase Admin SDK. Supply Firebase server credentials and the Brevo and Spotify secrets as server-only Railway variables. [Railway variables](https://docs.railway.com/variables) · [Firebase Admin SDK setup](https://firebase.google.com/docs/admin/setup)
+Deploy the Next.js Node.js service from GitHub on Railway. Connect it to Firebase Authentication and Cloud Firestore through the Firebase Admin SDK. Supply Firebase server credentials and the Spotify secrets as server-only Railway variables. Configure the Brevo credentials for the Firebase notification functions. [Railway variables](https://docs.railway.com/variables) · [Firebase Admin SDK setup](https://firebase.google.com/docs/admin/setup)
 
 ## U.S. phone numbers
 
@@ -85,7 +86,13 @@ For manual additions, use the Firebase Admin SDK on the server to look up an exa
 
 Serialize song requests, announcement publication, and delegated edits with changes to the RSVP and grants they depend on so an action ordered after revocation fails.
 
-Record notification work alongside the state change and send it after commit. Deliver email through Brevo’s transactional API from the server. Mark RSVP confirmations and attendee-facing event updates as higher priority than announcement emails. Select pending emails in priority order for the available daily quota. Key retries to the notification and recipient so retrying a job can skip completed sends. For a published announcement, record which guests were confirmed and had contact email at publication. Use the latest saved contact email for delivery. Use the ordinary event URL and the limited email content specified in the rules. [Notification rules](rules.md#rsvp-guest-confirmation-and-event-updates)
+## Notification delivery
+
+Record pending notifications in Firestore alongside the state change. After commit, the creation trigger enqueues work in Cloud Tasks. The task queue function claims pending deliveries in Firestore, sends them through Brevo, and records the result per recipient. Use Cloud Tasks for retry and dispatch limits. Select pending emails in Firestore priority order, with RSVP confirmations and attendee-facing event updates ahead of announcements. Use the available daily quota and track overflow separately. [Deferred quota decision](https://github.com/Ackberry/taal/issues/9)
+
+Key deliveries by notification and recipient so retried or duplicate work can skip completed sends. Start with zero minimum function instances so the worker can scale to zero when idle. [Cloud Run pricing](https://cloud.google.com/run/pricing) · [Cloud Tasks pricing](https://cloud.google.com/tasks/pricing)
+
+For a published announcement, record which guests were confirmed and had contact email at publication. Use the latest saved contact email for delivery. Use the ordinary event URL and the limited email content specified in the rules. [Notification rules](rules.md#rsvp-guest-confirmation-and-event-updates)
 
 When a guest who signed up by SMS is promoted from the waitlist, record the approval text in the same transaction as RSVP confirmation. Send it through Brevo after the transaction commits, using the guest’s verified U.S. number. Firebase Authentication sends phone verification codes.
 
@@ -115,6 +122,7 @@ Allowlist the pilot hosts in the Spotify Developer Dashboard. Each host connects
 - After host removal, event invite links fail for that account at that event. Repeated attempts are rate-limited across links and generate no host notification. Only the host can clear the block from the event’s block list.
 - After the host clears a block, the guest can redeem a live link and RSVP again with standard guest access.
 - After a cancellation or host removal, direct requests for private event details and board content fail. A guest's canceled song requests no longer count toward event totals, and tracks already on Spotify remain on the playlist.
+- Creating a pending notification triggers delivery work after the Firestore transaction commits. Retrying an already completed delivery skips that recipient.
 - A guest who signed up by SMS receives a Brevo approval text after their waitlist promotion commits. Phone sign-in verification codes are sent by Firebase.
 - When capacity is limited and both kinds are pending, choose RSVP confirmations and attendee-facing event updates before announcement emails.
 - An allowlisted host can approve a track and add it to their own Spotify playlist. A confirmed guest can search for tracks using only their Taal sign-in.
