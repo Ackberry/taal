@@ -21,12 +21,18 @@ Use `rules.md` as the source of truth for confirmed product behavior. GitHub iss
 - Start from the latest `origin/main`. Commit and push directly to `main` for routine changes. Open a pull request only if the owner asks for one.
 - If the owner requests a separate branch, name issue branches `<type>/<issue-number>-<short-slug>`, such as `feat/24-event-reference-images`. For changes without an issue, use `<type>/<short-slug>`, such as `docs/update-workflow`.
 - Use lowercase kebab-case for branch slugs and new project documentation filenames. Keep conventional filenames such as `AGENTS.md` and `README.md`.
-- Use short, stable scopes that describe the area changed. Start with `auth`, `events`, `rsvp`, `announcements`, `playlist`, `spotify`, `repo`, or `ci`. Use `playlist` for tracklist behavior and `spotify` for the integration. Use the same scope vocabulary in issues and commits.
+- Use short, stable scopes that describe the area changed. Start with `auth`, `events`, `rsvp`, `announcements`, `playlist`, `spotify`, `repo`, or `ci`. Use `playlist` for tracklist behavior and `spotify` for the integration. Use the same scope vocabulary in issues, commits, and pull requests.
 
 ## Commits and pushes
 
 - Write commits as `<type>(<scope>): <imperative summary>`. Use `feat`, `fix`, `docs`, `refactor`, `test`, `ci`, or `chore` as appropriate. For example, `docs(rsvp): record interim cancellation behavior`. Use `decision` for issue titles. Use `docs` for commits that record a decision.
-- Keep commits focused. Add a body when the reason or tradeoff needs explanation. Use `Refs #12` to link related work when helpful.
+- Keep each commit small and meaningful. Give it one logical change a reviewer can understand on its own. Split larger work into steps and include the tests and documentation that belong to each change. Add a commit body when the reason or tradeoff needs explanation. Use `Refs #12` to link related work when helpful.
+- When working in multiple commits, tell the owner what each commit does as you go. Explain why when the reason matters.
 - Review the diff and run applicable checks before pushing to `main`. If `main` has advanced, incorporate the remote changes and verify the result before pushing again.
 
-Scoped titles were adapted from [KHI’s pull request and commit history](https://github.com/GoogleCloudPlatform/khi/pulls?q=is%3Apr+is%3Aclosed).
+## Pull requests
+
+- Title PRs `<type>(<scope>): <imperative summary>`. Follow KHI’s concise style. Write a short summary of what changes and include the reason when it helps the reviewer.
+- Add a brief **Testing** note when checks were run or an important check is still pending. Link the issue with `Closes #12` when the PR resolves it. Keep the commit-by-commit breakdown in GitHub’s Commits tab and in updates to the owner.
+
+See [KHI’s pull request and commit history](https://github.com/GoogleCloudPlatform/khi/pulls?q=is%3Apr+is%3Aclosed) for examples.
