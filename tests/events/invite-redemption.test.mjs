@@ -99,3 +99,36 @@ test("blocked attempts are counted across links and do not change membership", a
   assert.deepEqual((await record.get()).data(), blocked);
   assert.equal((await redeem(links[0], otherAccount)).status, 200);
 });
+
+function openInvite(segment, account) {
+  return fetch(appOrigin + "/invite/" + segment, {
+    redirect: "manual",
+    headers: account ? { cookie: account.cookie } : {},
+  });
+}
+
+test("the browser entry rejects unavailable links before exposing sign-in", async () => {
+  const event = await fixture();
+  const live = await event.invite("special-party");
+  const expired = await event.invite("expired", { expiresAt: Date.now() - 1 });
+  const disabled = await event.invite("disabled", { disabledAt: Timestamp.now() });
+  for (const invalid of ["bad", "other-party" + live.slice(-44), expired, disabled]) {
+    const response = await openInvite(invalid);
+    assert.equal(response.status, 404);
+    assert.doesNotMatch(await response.text(), /Continue with Google/);
+  }
+
+  const page = await openInvite(live);
+  assert.equal(page.status, 200);
+  assert.match(page.headers.get("cache-control"), /no-store/);
+  const html = await page.text();
+  assert.match(html, /Continue with Google/);
+  assert.match(html, /Get a code by text/);
+  assert.doesNotMatch(html, /Test event/);
+
+  const account = await signIn();
+  const signedInPage = await openInvite(live, account);
+  assert.equal(signedInPage.status, 200);
+  assert.match(await signedInPage.text(), /Opening invite/);
+  assert.equal((await participant(event.event, account).get()).exists, false);
+});
