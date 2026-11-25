@@ -8,6 +8,7 @@
 - Deploy the Next.js app as one web service on the existing Railway Hobby plan. Its included resource usage is shared with other Railway usage on the plan. [Railway pricing](https://docs.railway.com/pricing/plans)
 - Use Firebase Authentication on the existing Blaze plan. Require a verified Taal account to browse event listings and host profiles, participate as a guest, or act as a host or delegate. Guests can sign in with Google or verify their phone by SMS.
 - Use Cloud Firestore for event data, including invite redemption, membership, and RSVP transactions.
+- Use Cloud Storage for Firebase for event photos and reference images. Choose an eligible U.S. region when provisioning the bucket. [Firebase Storage locations](https://firebase.google.com/docs/storage/locations)
 - Use Brevo’s free transactional email plan for confirmation, event update, and announcement emails. [Brevo free-plan limits](https://help.brevo.com/hc/en-us/articles/208580669-FAQs-What-are-the-limits-of-the-Free-plan)
 - Run the Spotify pilot with one Development Mode app and up to five authorized Spotify accounts for hosts. Keep Premium active on the app owner’s Spotify account. [Spotify quota modes](https://developer.spotify.com/documentation/web-api/concepts/quota-modes)
 - Use one invite creation screen for guest links, with a host-chosen readable path and an automatically generated random suffix. Multiple links can be active at once, each with its own expiration and a host-only **Disable** action. The host grants elevated permissions individually after RSVP confirmation.
@@ -15,6 +16,10 @@
 ## Deployment
 
 Deploy the Next.js Node.js service from GitHub on Railway. Connect it to Firebase Authentication and Cloud Firestore through the Firebase Admin SDK. Supply Firebase server credentials and the Brevo and Spotify secrets as server-only Railway variables. [Railway variables](https://docs.railway.com/variables) · [Firebase Admin SDK setup](https://firebase.google.com/docs/admin/setup)
+
+## Event media
+
+Store event image files in a private Cloud Storage bucket and save their object paths in Firestore. Serve images through Next.js after applying the event access rules. Listing banners use listing visibility, and private reference images require a current confirmed RSVP for guests.
 
 ## Invite creation and redemption
 
