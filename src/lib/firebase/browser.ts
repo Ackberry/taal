@@ -22,7 +22,9 @@ export function getFirebaseBrowserAuth() {
   }
 
   const app = getApps().find(({ name }) => name === "[DEFAULT]") ?? initializeApp(
-    emulatorUrl ? { apiKey: "demo-key", projectId } : { apiKey, authDomain, projectId, appId },
+    emulatorUrl
+      ? { apiKey: "demo-key", authDomain: "localhost", projectId }
+      : { apiKey, authDomain, projectId, appId },
   );
   const auth = initializeAuth(app, {
     persistence: inMemoryPersistence,
