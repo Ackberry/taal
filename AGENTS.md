@@ -1,6 +1,12 @@
 # Working on Taal
 
-Use `rules.md` as the source of truth for confirmed product behavior. GitHub issues track decisions and changes. Product implementation starts when the owner asks for it. Language, framework, and source-code naming conventions will be defined when we choose the stack.
+Use `rules.md` as the source of truth for confirmed product behavior. GitHub issues track decisions and changes. Product implementation starts when the owner asks for it. Use the stack recorded in [mvp-architecture.md](mvp-architecture.md).
+
+## MVP implementation
+
+- Build the first guest flow in dependency order with one dedicated PR per issue. Prioritize backend behavior and add enough responsive, keyboard-accessible UI to exercise each flow in the browser. Document the server inputs, responses, and errors the frontend depends on.
+- Keep route handlers focused on HTTP input and output. Encapsulate business rules in focused modules, use composition at service boundaries, and use classes where they clarify ownership of state or enforcement of invariants. Keep framework components and simple operations as functions.
+- Verify sessions and enforce permissions on the server for every protected operation. Validate input, return only the fields the caller can access, keep secrets server-side, and use transactions for related state changes. Check authorization and concurrency cases that could bypass event or capacity rules.
 
 ## Issues
 
