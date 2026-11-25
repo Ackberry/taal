@@ -15,3 +15,7 @@ export type EventParticipant = {
 export function eventAccountKey(uid: string): string {
   return createHash("sha256").update(uid).digest("hex");
 }
+
+export function isActiveEventGuest(guest: EventParticipant | undefined): guest is EventParticipant {
+  return guest?.membershipStatus === "active" && !guest.blockedAt;
+}

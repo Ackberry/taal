@@ -4,6 +4,8 @@ export type EventRecord = {
   ownerUid: string;
   name: string;
   startAt: Timestamp | null;
+  capacity?: number | null;
+  rsvpSequence?: number;
 };
 
 export const eventIdPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
