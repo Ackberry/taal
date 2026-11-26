@@ -9,3 +9,7 @@ export type InviteRecord = {
   expirationMode: HostInvite["expirationMode"];
   disabledAt: Timestamp | null;
 };
+
+export function isLiveInvite(invite: InviteRecord, now: Timestamp): boolean {
+  return !invite.disabledAt && invite.expiresAt.toMillis() > now.toMillis();
+}
