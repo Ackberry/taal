@@ -42,9 +42,38 @@ For live testing, copy `.env.example` to `.env.local` and fill in the Firebase W
 - `DELETE /api/session` deletes the current session record and clears the cookie. Success returns `204`. A temporary revocation failure returns `503` so the browser can retry. Other sessions for the same account stay signed in.
 - Both methods require the app’s origin. Error responses contain `code` and `message` fields. A request to `/account` without a valid session redirects to sign-in.
 
-## Run the host invite flow locally
+## Create a private event locally
 
-With the app and both emulators running, sign in as the approved test host. Find that account’s UID in the local [Authentication emulator](http://127.0.0.1:4000/auth). Seed a private event using the UID, a lowercase event ID, a future UTC start timestamp or `tba`, and an optional RSVP capacity.
+With Next.js and both Firebase emulators running, sign in and find your test account’s UID in the local [Authentication emulator](http://127.0.0.1:4000/auth). Approve it with the emulator-only command.
+
+```sh
+npm run approve:test-host -- <host-uid>
+```
+
+Refresh your account page, open **Manage your events**, and create an event. Enter a date and time in your browser’s time zone or mark it TBA. Leave capacity blank for unlimited RSVPs. The event appears in **Your events**, with a link to **Manage guest invites**. Run `npm run test:host-events` to check approval, event ownership, retries, invite redemption, and RSVP.
+
+For a live pilot, the project owner provisions approval using trusted Firebase administration. Create a document named with the approved account’s Firebase UID in the `hostAccounts` Firestore collection. The document’s presence grants access to the host event list and creation. The application derives event ownership from that account’s verified session.
+
+## Host event interface
+
+The host event page is `/host/events`. It redirects signed-out visitors to sign-in and returns 404 to verified accounts without host approval. It lists only events owned by the signed-in host.
+
+`POST /api/host/events` requires a verified, approved host session, the app’s origin, and a JSON body.
+
+| Field | Input |
+| --- | --- |
+| `requestId` | UUID v4 generated once per submission. Reuse it when retrying the same submission. |
+| `name` | Nonblank event name up to 120 characters after trimming. |
+| `startAt` | UTC ISO timestamp with milliseconds, or `null` for TBA. |
+| `capacity` | Positive safe integer, `null`, or omitted for unlimited RSVPs. |
+
+Creation returns `201` and `{ eventId, name, startAt, capacity }`. Retrying with the same `requestId` and event details returns `200` for the existing event. Use `/host/events/{eventId}/invites` to manage its guest links.
+
+Errors contain `{ code, message }`, with an optional `fields` map keyed by `name`, `startAt`, and `capacity` for field validation. Expect `400` for invalid input, `401` for a missing or invalid session, `403` for the wrong origin or missing host approval, `409` for reusing a request ID with different details, `415` for a non-JSON request, and `503` when the service is unavailable. Responses use `Cache-Control: no-store`.
+
+## Seed an event for invite tests
+
+With the app and both emulators running, sign in as the test host. Find that account’s UID in the local [Authentication emulator](http://127.0.0.1:4000/auth). Seed a private event using the UID, a lowercase event ID, a future UTC start timestamp or `tba`, and an optional RSVP capacity.
 
 ```sh
 npm run seed:test-event -- <host-uid> demo-event 2030-09-22T00:00:00Z 30

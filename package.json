@@ -12,6 +12,8 @@
     "lint": "eslint .",
     "typecheck": "next typegen && tsc --noEmit",
     "test:auth": "node --test tests/auth/session.test.mjs",
+    "approve:test-host": "node scripts/approve-test-host.mjs",
+    "test:host-events": "node --test tests/events/host-events.test.mjs",
     "test:invites": "node --test tests/events/host-invites.test.mjs",
     "seed:test-event": "node scripts/seed-test-event.mjs",
     "test:redemption": "node --test tests/events/invite-redemption.test.mjs",
