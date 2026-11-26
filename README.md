@@ -92,6 +92,16 @@ Errors return `{ code, message }` with an optional `fields` map. Expect `400` fo
 
 With Next.js and both Firebase emulators running, run `npm run test:event-details` to verify validation, editor access, guest visibility, and auditing.
 
+## Host event schedule interface
+
+`PATCH /api/host/events/{eventId}/schedule` requires the event owner’s verified session, the app’s origin, and a JSON body with a single field, `startAt`. Use a UTC ISO timestamp with milliseconds. The endpoint can announce a start for a TBA event or move a scheduled start.
+
+Success returns `200` and `{ startAt }`. The change moves expirations for live guest invites that follow the event start. Manual, disabled, and already expired invites keep their saved expirations. The event, affected invites, and an `event_details_updated` audit entry with `changedFields: ["startAt"]` are saved together. Repeating the current start succeeds without writing another audit entry.
+
+Errors return `{ code, message }`. Expect `400` for invalid input, including a `null` start, `401` for a missing or invalid session, `403` for the wrong origin, `404` for a missing event or non-owner, `415` for a non-JSON request, and `503` when scheduling is unavailable. Responses use `Cache-Control: no-store`.
+
+With Next.js and both Firebase emulators running, run `npm run test:event-schedule` to verify scheduling and invite expiration behavior.
+
 ## Seed an event for invite tests
 
 With the app and both emulators running, sign in as the test host. Find that account’s UID in the local [Authentication emulator](http://127.0.0.1:4000/auth). Seed a private event using the UID, a lowercase event ID, a future UTC start timestamp or `tba`, and an optional RSVP capacity.
