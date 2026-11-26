@@ -12,3 +12,11 @@ export function localDateTimeValue(date: Date) {
   const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
   return local.toISOString().slice(0, 16);
 }
+
+export function useLocalDateTimeValue(utc: string | null) {
+  return useSyncExternalStore(
+    subscribe,
+    () => utc ? localDateTimeValue(new Date(utc)) : "",
+    () => utc?.slice(0, 16) ?? "",
+  );
+}

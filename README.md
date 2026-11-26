@@ -94,6 +94,8 @@ With Next.js and both Firebase emulators running, run `npm run test:event-detail
 
 ## Host event schedule interface
 
+From `/host/events`, use **Edit start** to open `/host/events/{eventId}/schedule`. The editor shows the start in the browser’s time zone.
+
 `PATCH /api/host/events/{eventId}/schedule` requires the event owner’s verified session, the app’s origin, and a JSON body with a single field, `startAt`. Use a UTC ISO timestamp with milliseconds. The endpoint can announce a start for a TBA event or move a scheduled start.
 
 Success returns `200` and `{ startAt }`. The change moves expirations for live guest invites that follow the event start. Manual, disabled, and already expired invites keep their saved expirations. The event, affected invites, and an `event_details_updated` audit entry with `changedFields: ["startAt"]` are saved together. Repeating the current start succeeds without writing another audit entry.

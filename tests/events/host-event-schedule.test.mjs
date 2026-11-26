@@ -22,6 +22,13 @@ function schedule(event, account, body, headers) {
   return write(`host/events/${event.id}/schedule`, account, "PATCH", body, headers);
 }
 
+function page(path, account) {
+  return fetch(`${appOrigin}${path}`, {
+    headers: account ? { cookie: account.cookie } : {},
+    redirect: "manual",
+  });
+}
+
 async function expectJson(response, status) {
   assert.equal(response.status, status, await response.clone().text());
   assert.equal(response.headers.get("cache-control"), "no-store");
@@ -60,6 +67,30 @@ test("the schedule endpoint requires an owner, the app origin, and an exact UTC 
   }
   assert.equal((await event.get()).get("startAt"), null);
   assert.equal((await event.collection("auditEntries").get()).size, 0);
+});
+
+test("the owner can find and reload the schedule form from the host dashboard", async () => {
+  const [host, guest] = await Promise.all([signIn(), signIn()]);
+  await db.collection("hostAccounts").doc(host.uid).create({});
+  const event = await createEvent(host, null);
+  const path = `/host/events/${event.id}/schedule`;
+  const dashboard = await page("/host/events", host);
+  assert.equal(dashboard.status, 200);
+  assert.match(await dashboard.text(), new RegExp(`href="${path}"`));
+  assert.equal((await page(path)).status, 307);
+  assert.equal((await page(path, guest)).status, 404);
+
+  const initialPage = await page(path, host);
+  assert.equal(initialPage.status, 200);
+  const initial = await initialPage.text();
+  assert.match(initial, /Current start:.*TBA/);
+  assert.match(initial, /<label for="start-at">Start date and time<\/label>/);
+
+  const startAt = dateInDays(1);
+  await expectJson(await schedule(event, host, { startAt }), 200);
+  const updated = await (await page(path, host)).text();
+  assert.ok(updated.includes(`dateTime="${startAt}"`));
+  assert.ok(updated.includes(`value="${startAt.slice(0, 16)}"`));
 });
 
 test("rescheduling moves live default invites and preserves manual, expired, and disabled links", async () => {
@@ -107,6 +138,8 @@ test("rescheduling moves live default invites and preserves manual, expired, and
   }
   assert.equal((await view(confirmed)).details.startAt, newStart);
   assert.equal((await view(waitlisted)).details, undefined);
+  assert.ok((await (await page(`/events/${event.id}`, confirmed)).text()).includes(newStart));
+  assert.ok(!(await (await page(`/events/${event.id}`, waitlisted)).text()).includes(newStart));
 });
 
 test("announcing a TBA start keeps manual expirations and enables default invites", async () => {

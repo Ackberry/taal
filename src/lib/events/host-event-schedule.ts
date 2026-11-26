@@ -8,6 +8,14 @@ import { isLiveInvite, type InviteRecord } from "./invite-record";
 export class HostEventSchedule {
   constructor(private readonly db = getFirestore(getFirebaseAdminApp())) {}
 
+  async read(eventId: string, uid: string): Promise<{ name: string; startAt: string | null } | null> {
+    if (!isEventId(eventId)) return null;
+    const event = (await this.db.collection("events").doc(eventId).get()).data() as EventRecord | undefined;
+    if (event?.ownerUid !== uid) return null;
+
+    return { name: event.name, startAt: event.startAt?.toDate().toISOString() ?? null };
+  }
+
   async reschedule(eventId: string, uid: string, newStart: Date): Promise<{ startAt: string } | null> {
     if (!isEventId(eventId)) return null;
 
