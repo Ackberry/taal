@@ -3,6 +3,7 @@ import "server-only";
 import { FieldValue, getFirestore, Timestamp } from "firebase-admin/firestore";
 import { getFirebaseAdminApp } from "@/lib/firebase/admin";
 import { isEventId, type EventRecord } from "./event-record";
+import { assertFutureEventStart } from "./event-start";
 import { isLiveInvite, type InviteRecord } from "./invite-record";
 
 export class HostEventSchedule {
@@ -31,6 +32,7 @@ export class HostEventSchedule {
 
       const invites = await transaction.get(this.db.collection("eventInvites").where("eventId", "==", eventId));
       const now = Timestamp.now();
+      assertFutureEventStart(newStart, now.toMillis());
       for (const doc of invites.docs) {
         const invite = doc.data() as InviteRecord;
         if (invite.expirationMode === "event-start" && isLiveInvite(invite, now)) {

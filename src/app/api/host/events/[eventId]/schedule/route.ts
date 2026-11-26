@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentSession } from "@/lib/auth/session";
+import { EventStartInPastError } from "@/lib/events/event-start";
 import { HostEventSchedule } from "@/lib/events/host-event-schedule";
 import { checkSameOrigin } from "@/lib/http/same-origin";
 import { parseUtcTimestamp } from "@/lib/time/utc-timestamp";
@@ -8,8 +9,8 @@ export const runtime = "nodejs";
 
 const headers = { "Cache-Control": "no-store" };
 
-function scheduleError(status: number, code: string, message: string) {
-  return NextResponse.json({ code, message }, { status, headers });
+function scheduleError(status: number, code: string, message: string, fields?: { startAt: string }) {
+  return NextResponse.json({ code, message, fields }, { status, headers });
 }
 
 export async function PATCH(request: Request, { params }: RouteContext<"/api/host/events/[eventId]/schedule">) {
@@ -36,7 +37,10 @@ export async function PATCH(request: Request, { params }: RouteContext<"/api/hos
     const schedule = await new HostEventSchedule().reschedule(eventId, session.uid, startAt);
     if (!schedule) return scheduleError(404, "event_unavailable", "This event is unavailable.");
     return NextResponse.json(schedule, { headers });
-  } catch {
+  } catch (error) {
+    if (error instanceof EventStartInPastError) {
+      return scheduleError(400, "invalid_input", error.message, { startAt: error.message });
+    }
     console.error("Taal could not reschedule an event.");
     return scheduleError(503, "events_unavailable", "Couldn’t save the event start. Try again later.");
   }

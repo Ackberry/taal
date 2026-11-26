@@ -109,6 +109,13 @@ test("rescheduling moves live default invites and preserves manual, expired, and
   const disabledInvite = await expectJson(await write(`host/events/${event.id}/invites`, host, "PATCH", { token: disabled.token }), 200);
   await inviteRef(expired).update({ expiresAt: expiredAt });
 
+  const rejected = await expectJson(await schedule(event, host, { startAt: dateInDays(-1) }), 400);
+  assert.equal(rejected.code, "invalid_input");
+  assert.match(rejected.fields.startAt, /in the future/);
+  assert.equal((await event.get()).get("startAt").toDate().toISOString(), oldStart);
+  assert.equal((await inviteRef(live).get()).get("expiresAt").toDate().toISOString(), oldStart);
+  assert.equal((await event.collection("auditEntries").get()).size, 0);
+
   const participants = await Promise.all([confirmed, waitlisted].map(async (guest, index) => {
     const ref = participantRef(event, guest);
     const data = { uid: guest.uid, membershipStatus: "active", rsvpStatus: index ? "waitlisted" : "confirmed", blockedAt: null };

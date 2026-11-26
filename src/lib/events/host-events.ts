@@ -4,6 +4,7 @@ import { createHash } from "node:crypto";
 import { getFirestore, Timestamp } from "firebase-admin/firestore";
 import { getFirebaseAdminApp } from "@/lib/firebase/admin";
 import type { EventRecord } from "./event-record";
+import { assertFutureEventStart } from "./event-start";
 import type { EventCreationInput, HostEvent } from "./host-event-input";
 
 export class HostEventError extends Error {
@@ -69,6 +70,7 @@ export class HostEvents {
         return { event: toHostEvent(eventId, existing), created: false };
       }
 
+      if (input.startAt) assertFutureEventStart(input.startAt);
       const record: EventRecord = {
         ownerUid: uid,
         name: input.name,

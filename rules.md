@@ -35,6 +35,7 @@
 
 ## RSVP, guest confirmation, and event updates
 
+- When creating an event with a scheduled start or changing its start, choose a time after the current server time.
 - The host and attendees with an event editing grant can configure the event name, date and time, address, event photo, and description. They can also attach additional reference images, such as outfit examples, an entrance photo, or a flyer.
 - Hosts can optionally add a theme or dress code, last entry time, student or photo ID requirements, and a plus-one policy. They can also add directions, the entrance to use, shuttle or rideshare drop-off information, step-free access information, and a contact for event or accessibility questions. Which event filters to support is still open.
 - After a successful song request, show a confirmation with the event address and other details the host has provided. Show “TBA” for details the host has yet to announce, including the address.

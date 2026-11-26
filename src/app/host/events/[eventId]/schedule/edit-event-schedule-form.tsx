@@ -43,7 +43,7 @@ export default function EditEventScheduleForm({ eventId, startAt }: { eventId: s
       const result = await response.json();
       if (!response.ok) {
         setInvalidStart(response.status === 400);
-        setError(result.message ?? "Couldn’t save the event start.");
+        setError(result.fields?.startAt ?? result.message ?? "Couldn’t save the event start.");
         return;
       }
 
