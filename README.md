@@ -71,6 +71,27 @@ Creation returns `201` and `{ eventId, name, startAt, capacity }`. Retrying with
 
 Errors contain `{ code, message }`, with an optional `fields` map keyed by `name`, `startAt`, and `capacity` for field validation. Expect `400` for invalid input, `401` for a missing or invalid session, `403` for the wrong origin or missing host approval, `409` for reusing a request ID with different details, `415` for a non-JSON request, and `503` when the service is unavailable. Responses use `Cache-Control: no-store`.
 
+## Host event details interface
+
+From `/host/events`, use **Edit details** to open `/host/events/{eventId}/details`. The editor uses `PATCH /api/host/events/{eventId}/details`. Both require the event owner’s verified session. The write also requires the app’s origin and JSON.
+
+Send only the fields that changed. Omitted fields are preserved. Use `null` or blank text to clear an optional field. Text is trimmed and checked against these limits.
+
+| Field | Input |
+| --- | --- |
+| `name` | Required when supplied. Nonblank text up to 120 characters. |
+| `location` | Venue or address, up to 300 characters. |
+| `description` | Up to 4,000 characters. |
+| `lastEntryTime` | Up to 100 characters. Include the time zone in the text. |
+| `directions` | Up to 1,000 characters. |
+| `dressCode`, `idRequirements`, `plusOnePolicy`, `entrance`, `dropOff`, `stepFreeAccess`, `contact` | Up to 500 characters each. |
+
+Success returns `200` with `{ name, ...privateDetails }`, including only the optional fields currently set. Each change saves an `event_details_updated` audit entry in `events/{eventId}/auditEntries` with the acting account, changed field names, and server timestamp, in the same transaction. An unchanged patch creates no audit entry.
+
+Errors return `{ code, message }` with an optional `fields` map. Expect `400` for invalid JSON, unsupported fields, or invalid values, `401` for a missing or invalid session, `403` for the wrong origin, `404` for a missing event or non-owner, `415` for a non-JSON request, and `503` when editing is unavailable. Responses use `Cache-Control: no-store`.
+
+With Next.js and both Firebase emulators running, run `npm run test:event-details` to verify validation, editor access, guest visibility, and auditing.
+
 ## Seed an event for invite tests
 
 With the app and both emulators running, sign in as the test host. Find that account’s UID in the local [Authentication emulator](http://127.0.0.1:4000/auth). Seed a private event using the UID, a lowercase event ID, a future UTC start timestamp or `tba`, and an optional RSVP capacity.
@@ -107,7 +128,7 @@ The browser entry point is `GET /invite/{slug}-{token}`. It checks availability 
 
 `GET /events/{eventId}` asks signed-out guests to sign in and returns them to the same URL. A verified account without access receives the default 404. Opening the event URL does not create membership.
 
-`GET /api/events/{eventId}` requires a verified session. Active guests receive `{ name, role: "guest", rsvpStatus }`, with RSVP status `none`, `waitlisted`, or `confirmed`. Confirmed guests also receive `details: { startAt }`. The event owner receives `{ name, role: "host", details: { startAt } }`. The start time is an ISO timestamp or null for TBA. Both the page and endpoint use the current membership and RSVP status to determine which fields to return.
+`GET /api/events/{eventId}` requires a verified session. Active guests receive `{ name, role: "guest", rsvpStatus }`, with RSVP status `none`, `waitlisted`, or `confirmed`. Confirmed guests also receive `details` with `startAt` and the optional fields listed under the host event details interface. The event owner receives `{ name, role: "host", details }` with the same details shape. The start time is an ISO timestamp or null for TBA. Unset optional fields are omitted from the API response. The page displays TBA when `location` is unset. Both the page and endpoint use the current membership and RSVP status to determine which fields to return.
 
 Errors contain `{ code, message }`. Expect `401` for a missing or invalid session, `404` for a missing event or an account without access, and `503` when event data is unavailable.
 
