@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentSession } from "@/lib/auth/session";
+import { EventStartInPastError } from "@/lib/events/event-start";
 import { parseEventCreation, type EventFieldErrors } from "@/lib/events/host-event-input";
 import { HostEventError, HostEvents } from "@/lib/events/host-events";
 import { checkSameOrigin } from "@/lib/http/same-origin";
@@ -34,6 +35,9 @@ export async function POST(request: Request) {
     const { event, created } = await new HostEvents().create(session.uid, parsed.input);
     return NextResponse.json(event, { status: created ? 201 : 200, headers });
   } catch (error) {
+    if (error instanceof EventStartInPastError) {
+      return eventError(400, "invalid_input", "Check the event details and try again.", { startAt: error.message });
+    }
     if (error instanceof HostEventError) {
       if (error.code === "host_approval_required") {
         return eventError(403, error.code, "Only approved hosts can create events.");

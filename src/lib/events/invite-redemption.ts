@@ -4,7 +4,7 @@ import { getFirestore, Timestamp } from "firebase-admin/firestore";
 import { getFirebaseAdminApp } from "@/lib/firebase/admin";
 import { eventAccountKey, type EventParticipant } from "./event-participant";
 import { parseGuestInviteSegment } from "./invite-input";
-import type { InviteRecord } from "./invite-record";
+import { isLiveInvite, type InviteRecord } from "./invite-record";
 
 const attemptLimit = 10;
 const windowDurationMs = 10 * 60 * 1_000;
@@ -16,10 +16,6 @@ type RedemptionResult =
   | { status: "unavailable" }
   | { status: "rate_limited"; retryAfter: number };
 
-function isLive(invite: InviteRecord, now: Timestamp) {
-  return !invite.disabledAt && invite.expiresAt.toMillis() > now.toMillis();
-}
-
 export class InviteRedemption {
   constructor(private readonly db = getFirestore(getFirebaseAdminApp())) {}
 
@@ -29,7 +25,7 @@ export class InviteRedemption {
 
     const snapshot = await this.db.collection("eventInvites").doc(link.token).get();
     const invite = snapshot.data() as InviteRecord | undefined;
-    if (!invite || invite.slug !== link.slug || !isLive(invite, Timestamp.now())) return false;
+    if (!invite || invite.slug !== link.slug || !isLiveInvite(invite, Timestamp.now())) return false;
 
     return (await this.db.collection("events").doc(invite.eventId).get()).exists;
   }
@@ -66,7 +62,7 @@ export class InviteRedemption {
       transaction.set(attemptRef, { ...window, count: window.count + 1 });
 
       const participant = participantSnapshot.data() as EventParticipant | undefined;
-      if (!isLive(invite, now) || participant?.blockedAt) {
+      if (!isLiveInvite(invite, now) || participant?.blockedAt) {
         return { status: "unavailable" };
       }
 

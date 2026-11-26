@@ -68,6 +68,9 @@ test("only approved, signed-in hosts can list or create events", async () => {
   const error = await expectJson(await createEvent(account, invalid), 400);
   assert.equal(error.code, "invalid_input");
   assert.deepEqual(Object.keys(error.fields).sort(), ["capacity", "name", "startAt"]);
+  const past = await expectJson(await createEvent(account, { ...body, startAt: new Date().toISOString() }), 400);
+  assert.equal(past.code, "invalid_input");
+  assert.match(past.fields.startAt, /in the future/);
   assert.equal((await db.collection("events").where("ownerUid", "==", account.uid).get()).size, 0);
 
   await approval.delete();
