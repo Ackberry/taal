@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import SignInForm from "@/app/auth/sign-in-form";
 import { getCurrentSession } from "@/lib/auth/session";
 import { readEventView } from "@/lib/events/event-access";
+import { privateDetailFields, privateDetailKeys } from "@/lib/events/event-details-input";
 import { isEventId } from "@/lib/events/event-record";
 import RsvpSection from "./rsvp-section";
 
@@ -45,6 +46,16 @@ export default async function EventPage({ params }: PageProps<"/events/[eventId]
                 {timeFormat.format(new Date(event.details.startAt))} UTC
               </time>
             ) : "TBA"}</dd>
+            {privateDetailKeys.map((key) => {
+              const value = event.details[key];
+              if (!value && key !== "location") return null;
+              return (
+                <div key={key}>
+                  <dt>{key === "lastEntryTime" ? "Last entry time" : privateDetailFields[key].label}</dt>
+                  <dd>{value ?? "TBA"}</dd>
+                </div>
+              );
+            })}
           </dl>
         </section>
       )}

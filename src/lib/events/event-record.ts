@@ -1,4 +1,5 @@
 import type { Timestamp } from "firebase-admin/firestore";
+import { privateDetailKeys, type PrivateEventDetails } from "./event-details-input";
 
 export type EventRecord = {
   ownerUid: string;
@@ -7,7 +8,17 @@ export type EventRecord = {
   capacity?: number | null;
   rsvpSequence?: number;
   creationFingerprint?: string;
+  privateDetails?: PrivateEventDetails;
 };
+
+export function selectPrivateEventDetails(event: EventRecord): PrivateEventDetails {
+  const details: PrivateEventDetails = {};
+  for (const key of privateDetailKeys) {
+    const value = event.privateDetails?.[key];
+    if (typeof value === "string" && value) details[key] = value;
+  }
+  return details;
+}
 
 export const eventIdPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 

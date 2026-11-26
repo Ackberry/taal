@@ -3,9 +3,10 @@ import "server-only";
 import { getFirestore } from "firebase-admin/firestore";
 import { getFirebaseAdminApp } from "@/lib/firebase/admin";
 import { eventAccountKey, isActiveEventGuest, type EventParticipant } from "./event-participant";
-import { isEventId, type EventRecord } from "./event-record";
+import type { PrivateEventDetails } from "./event-details-input";
+import { isEventId, selectPrivateEventDetails, type EventRecord } from "./event-record";
 
-type EventDetails = { startAt: string | null };
+type EventDetails = { startAt: string | null } & PrivateEventDetails;
 
 type EventView = { name: string } & (
   | { role: "host"; details: EventDetails }
@@ -14,7 +15,7 @@ type EventView = { name: string } & (
 );
 
 function eventDetails(event: EventRecord): EventDetails {
-  return { startAt: event.startAt?.toDate().toISOString() ?? null };
+  return { startAt: event.startAt?.toDate().toISOString() ?? null, ...selectPrivateEventDetails(event) };
 }
 
 export async function readEventView(eventId: string, uid: string): Promise<EventView | null> {
