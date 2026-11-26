@@ -20,7 +20,8 @@ body {
 }
 
 button,
-input {
+input,
+textarea {
   font: inherit;
 }
 
@@ -49,6 +50,7 @@ h1 {
 }
 
 input,
+textarea,
 .button,
 .text-button {
   min-height: 2.75rem;
@@ -56,11 +58,16 @@ input,
   border-radius: 0.5rem;
 }
 
-input {
+input,
+textarea {
   width: 100%;
   border: 1px solid #7b747e;
   color: inherit;
   background: white;
+}
+
+textarea {
+  resize: vertical;
 }
 
 .button,
@@ -212,4 +219,15 @@ button:disabled {
 
 .event-page dd {
   margin-inline-start: 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.event-page dl {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.event-page dt {
+  font-weight: 600;
 }

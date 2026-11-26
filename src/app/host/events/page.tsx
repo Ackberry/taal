@@ -33,9 +33,14 @@ export default async function HostEventsPage() {
                   {startAt ? <EventStartTime startAt={startAt} /> : "Start time TBA"}
                   {" · "}{capacity === null ? "Unlimited RSVPs" : `RSVP capacity ${capacity}`}
                 </p>
-                <Link href={`/host/events/${eventId}/invites`} aria-label={`Manage guest invites for ${name}`}>
-                  Manage guest invites
-                </Link>
+                <div className="invite-actions">
+                  <Link href={`/host/events/${eventId}/details`} aria-label={`Edit details for ${name}`}>
+                    Edit details
+                  </Link>
+                  <Link href={`/host/events/${eventId}/invites`} aria-label={`Manage guest invites for ${name}`}>
+                    Manage guest invites
+                  </Link>
+                </div>
               </li>
             ))}
           </ul>
