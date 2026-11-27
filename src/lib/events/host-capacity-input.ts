@@ -1,5 +1,12 @@
 export type CapacityChange = { capacity: number | null; removeParticipantIds: string[] };
 
+export type HostCapacityView = {
+  name: string;
+  capacity: number | null;
+  confirmedGuests: { participantId: string; label: string }[];
+  waitlistedCount: number;
+};
+
 export function parseCapacityChange(body: unknown): CapacityChange | null {
   if (!body || typeof body !== "object" || Array.isArray(body)) return null;
   if (Object.keys(body).some((key) => key !== "capacity" && key !== "removeParticipantIds")) return null;

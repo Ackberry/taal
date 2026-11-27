@@ -3,11 +3,14 @@ import { createHash, randomUUID } from "node:crypto";
 import process from "node:process";
 import test from "node:test";
 import { initializeApp } from "firebase-admin/app";
+import { getAuth } from "firebase-admin/auth";
 import { getFirestore, Timestamp } from "firebase-admin/firestore";
 import { appOrigin, signIn } from "./emulator-session.mjs";
 
 process.env.FIRESTORE_EMULATOR_HOST = "127.0.0.1:8080";
-const db = getFirestore(initializeApp({ projectId: "demo-taal" }));
+process.env.FIREBASE_AUTH_EMULATOR_HOST = "127.0.0.1:9099";
+const app = initializeApp({ projectId: "demo-taal" });
+const db = getFirestore(app);
 
 function api(path, account, options = {}) {
   return fetch(`${appOrigin}/api/${path}`, {
@@ -26,6 +29,13 @@ function write(path, account, method, body, headers = {}) {
 
 function change(event, host, body, headers) {
   return write(`host/events/${event.id}/capacity`, host, "PATCH", body, headers);
+}
+
+function page(path, account) {
+  return fetch(`${appOrigin}${path}`, {
+    headers: account ? { cookie: account.cookie } : {},
+    redirect: "manual",
+  });
 }
 
 async function expectJson(response, status) {
@@ -69,6 +79,46 @@ test("only the event owner can submit a valid capacity change", async () => {
     assert.equal((await change(event, host, invalid)).status, 400);
   }
   assert.equal((await event.get()).get("capacity"), 2);
+});
+
+test("only the host's capacity page receives confirmed guest labels and the current roster", async () => {
+  const [host, confirmed, waiting] = await Promise.all([signIn(), signIn(), signIn()]);
+  await db.collection("hostAccounts").doc(host.uid).create({});
+  const event = await createEvent(host, 1);
+  const [confirmedEntry, waitingEntry] = await Promise.all([
+    addGuest(event, confirmed, "confirmed"), addGuest(event, waiting, "waitlisted", 1),
+  ]);
+  const [confirmedAccount, waitingAccount] = await Promise.all([
+    getAuth(app).getUser(confirmed.uid), getAuth(app).getUser(waiting.uid),
+  ]);
+  assert.ok(confirmedAccount.email);
+  assert.ok(waitingAccount.email);
+
+  const path = `/host/events/${event.id}/capacity`;
+  const dashboard = await page("/host/events", host);
+  assert.equal(dashboard.status, 200);
+  assert.ok((await dashboard.text()).includes(`href="${path}"`));
+  assert.equal((await page(path)).status, 307);
+  const guestPage = await page(path, confirmed);
+  assert.equal(guestPage.status, 404);
+  assert.ok(!(await guestPage.text()).includes(confirmedAccount.email));
+
+  const editor = await page(path, host);
+  assert.equal(editor.status, 200);
+  assert.match(editor.headers.get("cache-control"), /no-store/);
+  const html = await editor.text();
+  assert.match(html, /Edit RSVP capacity/);
+  assert.ok(html.includes(confirmedEntry.id));
+  assert.ok(html.includes(confirmedAccount.email));
+  assert.ok(!html.includes(waitingEntry.id));
+  assert.ok(!html.includes(waitingAccount.email));
+
+  await expectJson(await change(event, host, { capacity: 2 }), 200);
+  const reloaded = await page(path, host);
+  assert.equal(reloaded.status, 200);
+  const updated = await reloaded.text();
+  assert.ok(updated.includes(waitingEntry.id));
+  assert.ok(updated.includes(waitingAccount.email));
 });
 
 test("raising capacity promotes the oldest guest and unlimited capacity clears the waitlist", async () => {
