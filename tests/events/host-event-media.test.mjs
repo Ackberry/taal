@@ -40,6 +40,13 @@ function readEvent(event, account, suffix = "") {
   return fetch(`${appOrigin}/api/events/${event.id}${suffix}`, { headers: account ? { cookie: account.cookie } : {} });
 }
 
+function page(path, account) {
+  return fetch(`${appOrigin}${path}`, {
+    redirect: "manual",
+    headers: account ? { cookie: account.cookie } : {},
+  });
+}
+
 async function addMember(event, account, rsvpStatus) {
   const id = createHash("sha256").update(account.uid).digest("hex");
   const member = event.collection("participants").doc(id);
@@ -153,6 +160,11 @@ test("reference images are independent and only their event owner can remove the
   assert.deepEqual(remaining.docs.map((doc) => doc.id), [second.id]);
   assert.equal((await bucket.file(objectPath).exists())[0], false);
   assert.equal((await readEvent(event, host, `/media/${first.id}`)).status, 404);
+  const editor = await page(`/host/events/${event.id}/media`, host);
+  assert.equal(editor.status, 200);
+  const html = await editor.text();
+  assert.ok(!html.includes(first.id));
+  assert.ok(html.includes(second.id));
   assert.equal((await event.collection("auditEntries").get()).size, 3);
 });
 
@@ -181,6 +193,35 @@ test("event views and direct image requests enforce current photo and reference 
   const reference = await expectJson(await upload(event, host, "reference", bytes, "Private entrance"), 201);
   const photoUrl = `/media/${photo.id}`;
   const referenceUrl = `/media/${reference.id}`;
+
+  const eventPath = `/events/${event.id}`;
+  const hostPath = `/host${eventPath}/media`;
+  await db.collection("hostAccounts").doc(host.uid).create({});
+  const dashboard = await page("/host/events", host);
+  assert.equal(dashboard.status, 200);
+  assert.ok((await dashboard.text()).includes(`href="${hostPath}"`));
+  assert.equal((await page(hostPath)).status, 307);
+  assert.equal((await page(hostPath, confirmed)).status, 404);
+  const manager = await page(hostPath, host);
+  assert.equal(manager.status, 200);
+  const editor = await manager.text();
+  assert.match(editor, /Replace event photo/);
+  assert.match(editor, /Add reference image/);
+  assert.match(editor, /Remove image 1 \(Private entrance\)/);
+
+  const confirmedPage = await page(eventPath, confirmed);
+  assert.equal(confirmedPage.status, 200);
+  const confirmedHtml = await confirmedPage.text();
+  assert.ok(confirmedHtml.includes(`src="/api${eventPath}${photoUrl}"`));
+  assert.ok(confirmedHtml.includes(`src="/api${eventPath}${referenceUrl}"`));
+  assert.match(confirmedHtml, /alt="Private entrance"/);
+
+  const waitlistedPage = await page(eventPath, waitlisted);
+  assert.equal(waitlistedPage.status, 200);
+  const waitlistedHtml = await waitlistedPage.text();
+  assert.ok(waitlistedHtml.includes(`src="/api${eventPath}${photoUrl}"`));
+  assert.ok(!waitlistedHtml.includes(reference.id));
+  assert.ok(!waitlistedHtml.includes("Private entrance"));
 
   for (const viewer of [host, confirmed]) {
     const view = await expectJson(await readEvent(event, viewer), 200);

@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import SignInForm from "@/app/auth/sign-in-form";
+import EventMediaImage, { eventImageUrl } from "@/app/event-media-image";
 import { getCurrentSession } from "@/lib/auth/session";
 import { readEventView } from "@/lib/events/event-access";
 import { privateDetailFields, privateDetailKeys } from "@/lib/events/event-details-input";
@@ -29,6 +30,7 @@ export default async function EventPage({ params }: PageProps<"/events/[eventId]
 
   const event = await readEventView(eventId, session.uid);
   if (!event) notFound();
+  const references = "details" in event ? event.details.referenceImages : undefined;
 
   return (
     <main className="page event-page">
@@ -36,6 +38,7 @@ export default async function EventPage({ params }: PageProps<"/events/[eventId]
       {event.role === "guest" && (
         <RsvpSection eventId={eventId} rsvpStatus={event.rsvpStatus} />
       )}
+      {event.photo && <div className="event-photo"><EventMediaImage eventId={eventId} image={event.photo} eager /></div>}
       {"details" in event && (
         <section aria-labelledby="event-details">
           <h2 id="event-details">Event details</h2>
@@ -57,6 +60,21 @@ export default async function EventPage({ params }: PageProps<"/events/[eventId]
               );
             })}
           </dl>
+        </section>
+      )}
+      {references && references.length > 0 && (
+        <section aria-labelledby="event-reference-images">
+          <h2 id="event-reference-images">Reference images</h2>
+          <ul className="event-image-list invite-list">
+            {references.map((image, index) => (
+              <li key={image.id}>
+                <a className="event-image-link" href={eventImageUrl(eventId, image.id)}
+                  aria-label={`Open reference image ${index + 1}${image.alt ? ` (${image.alt})` : ""}`}>
+                  <EventMediaImage eventId={eventId} image={image} />
+                </a>
+              </li>
+            ))}
+          </ul>
         </section>
       )}
     </main>
