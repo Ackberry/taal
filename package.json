@@ -16,6 +16,7 @@
     "test:host-events": "node --test tests/events/host-events.test.mjs",
     "test:event-details": "node --test tests/events/host-event-details.test.mjs",
     "test:event-schedule": "node --test tests/events/host-event-schedule.test.mjs",
+    "test:event-capacity": "node --test tests/events/host-event-capacity.test.mjs",
     "test:invites": "node --test tests/events/host-invites.test.mjs",
     "seed:test-event": "node scripts/seed-test-event.mjs",
     "test:redemption": "node --test tests/events/invite-redemption.test.mjs",

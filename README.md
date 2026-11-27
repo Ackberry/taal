@@ -104,6 +104,18 @@ Errors return `{ code, message }` with an optional `fields.startAt` message. Exp
 
 With Next.js and both Firebase emulators running, run `npm run test:event-schedule` to verify scheduling and invite expiration behavior.
 
+## Host event capacity interface
+
+From `/host/events`, use **Edit capacity** to open `/host/events/{eventId}/capacity`. The owner-only editor uses confirmed guests’ verified sign-in emails or phone numbers to identify removal options and shows a count for the waitlist. It refreshes attendance after a conflict and keeps the requested limit for review.
+
+`PATCH /api/host/events/{eventId}/capacity` requires the event owner’s verified session, the app’s origin, and a JSON body with `capacity` and optional `removeParticipantIds`. Set `capacity` to a positive safe integer or `null` for unlimited. Send unique confirmed participant IDs only when the confirmed count exceeds the new limit.
+
+Success returns `200` with `{ capacity, promotedCount, removedCount }`. The limit, selected removals, event blocks, and waitlist promotions commit together. Promotions fill open spots in waitlist order, including when the limit is cleared.
+
+Errors return `{ code, message }`. Expect `400` for invalid input, `401` for a missing or invalid session, `403` for the wrong origin, `404` for a missing event or non-owner, `415` for a non-JSON request, and `503` when editing is unavailable. A `409` with `stale_selection` or `insufficient_selection` includes `requiredRemovals` from the current confirmed count. Reload attendance before retrying a conflict. Responses use `Cache-Control: no-store`.
+
+With Next.js and both Firebase emulators running, run `npm run test:event-capacity` to verify capacity updates, removals, and concurrent RSVPs.
+
 ## Seed an event for invite tests
 
 With the app and both emulators running, sign in as the test host. Find that account’s UID in the local [Authentication emulator](http://127.0.0.1:4000/auth). Seed a private event using the UID, a lowercase event ID, a future UTC start timestamp or `tba`, and an optional RSVP capacity.
