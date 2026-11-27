@@ -5,18 +5,20 @@ import { applicationDefault, cert, getApps, initializeApp, type AppOptions } fro
 function getAppOptions(projectId: string): AppOptions {
   const authEmulator = process.env.FIREBASE_AUTH_EMULATOR_HOST;
   const firestoreEmulator = process.env.FIRESTORE_EMULATOR_HOST;
-  if (authEmulator || firestoreEmulator) {
+  const storageEmulator = process.env.FIREBASE_STORAGE_EMULATOR_HOST || process.env.STORAGE_EMULATOR_HOST;
+  if (authEmulator || firestoreEmulator || storageEmulator) {
     if (!authEmulator || !firestoreEmulator ||
         process.env.NODE_ENV === "production" || !projectId.startsWith("demo-")) {
       throw new Error("Use both Firebase emulators with a local demo project.");
     }
 
-    return { projectId };
+    return { projectId, storageBucket: storageEmulator ? `${projectId}.appspot.com` : undefined };
   }
 
+  const storageBucket = process.env.FIREBASE_STORAGE_BUCKET;
   const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
   if (!serviceAccountJson) {
-    return { projectId, credential: applicationDefault() };
+    return { projectId, storageBucket, credential: applicationDefault() };
   }
 
   const serviceAccount = JSON.parse(serviceAccountJson);
@@ -24,7 +26,7 @@ function getAppOptions(projectId: string): AppOptions {
     throw new Error("Firebase credentials must match the configured project.");
   }
 
-  return { projectId, credential: cert(serviceAccount) };
+  return { projectId, storageBucket, credential: cert(serviceAccount) };
 }
 
 export function getFirebaseAdminApp() {

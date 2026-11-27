@@ -36,6 +36,12 @@ Open `http://localhost:3000`. The emulator supplies a simulated Google sign-in a
 
 For live testing, copy `.env.example` to `.env.local` and fill in the Firebase Web app configuration. Authenticate the server with Application Default Credentials for the Firebase project or provide `FIREBASE_SERVICE_ACCOUNT_JSON` as a private server variable. Set `TAAL_APP_ORIGIN` to the origin users actually visit. Initialize the default Firestore database in production mode and apply the server-only rules in `firestore.rules`. Give the server credentials access to Firebase Auth and Firestore. Enable Firestore TTL on `authSessions.expiresAt` to clean up expired session records. Add the deployed domain to Firebase Authentication’s authorized domains before testing Google and real SMS. [Firebase Admin setup](https://firebase.google.com/docs/admin/setup) · [Firestore TTL](https://firebase.google.com/docs/firestore/ttl) · [Firebase web phone sign-in](https://firebase.google.com/docs/auth/web/phone-auth)
 
+## Event image storage
+
+For local event image work, add `storage` to the emulator startup command and set `FIREBASE_STORAGE_EMULATOR_HOST=127.0.0.1:9199` when starting Next.js. The app uses the demo project’s local bucket. Run `npm run test:event-images` for image validation and `npm run test:event-image-storage` against the Storage emulator for upload, retrieval, and deletion.
+
+For live media, set the server-only `FIREBASE_STORAGE_BUCKET` to the name of the private Firebase bucket. Apply `storage.rules` to that bucket and give the server service account permission to create, read, and delete objects. Enable uniform bucket-level access and enforce public access prevention. Image objects are written without download tokens or public URLs. [Storage emulator](https://firebase.google.com/docs/emulator-suite/connect_storage) · [Public access prevention](https://cloud.google.com/storage/docs/public-access-prevention) · [Uniform bucket-level access](https://cloud.google.com/storage/docs/uniform-bucket-level-access)
+
 ## Auth interface
 
 - `POST /api/session` accepts JSON with an `idToken` from Firebase sign-in. Success returns `204` and sets an HTTP-only session cookie. On protected requests the server verifies the Firebase credential and checks for an active Firestore session record.
