@@ -42,6 +42,16 @@ For local event image work, add `storage` to the emulator startup command and se
 
 For live media, set the server-only `FIREBASE_STORAGE_BUCKET` to the name of the private Firebase bucket. Apply `storage.rules` to that bucket and give the server service account permission to create, read, and delete objects. Enable uniform bucket-level access and enforce public access prevention. Image objects are written without download tokens or public URLs. [Storage emulator](https://firebase.google.com/docs/emulator-suite/connect_storage) · [Public access prevention](https://cloud.google.com/storage/docs/public-access-prevention) · [Uniform bucket-level access](https://cloud.google.com/storage/docs/uniform-bucket-level-access)
 
+### Host image API
+
+`POST /api/host/events/{eventId}/media` requires the event owner’s verified session, the app’s origin, and `multipart/form-data`. Send `kind` as `photo` to add or replace the event photo or `reference` to add a reference image. Send one `image` file (JPEG, PNG, or still WebP, at most 3 MB) and an optional `alt` description of up to 200 characters. Success returns `201` with `{ id, kind, alt }`. Storage paths stay on the server. Failed validation leaves saved images intact.
+
+`DELETE /api/host/events/{eventId}/media?imageId={id}` requires the same session and origin. It removes a reference image and returns `204`. The event photo is replaced with `POST`. Image edits update the Firestore media record and save an audit entry together. Detached objects are deleted after the edit commits. Storage deletion failures or an uncertain Firestore commit can leave a private object for later cleanup.
+
+Errors return `{ code, message }`. Expect `400` for invalid input, `401` for a missing or invalid session, `403` for the wrong origin, `404` for unavailable media or a non-owner, `413` for an oversized image, `415` for a non-multipart upload, and `503` when media editing is unavailable. Responses use `Cache-Control: no-store`.
+
+With Next.js and all three Firebase emulators running, run `npm run test:host-event-media` to exercise the host mutation API.
+
 ## Auth interface
 
 - `POST /api/session` accepts JSON with an `idToken` from Firebase sign-in. Success returns `204` and sets an HTTP-only session cookie. On protected requests the server verifies the Firebase credential and checks for an active Firestore session record.

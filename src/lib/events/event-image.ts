@@ -4,6 +4,7 @@ import sharp from "sharp";
 
 const maxUploadMegabytes = 3;
 export const eventImageMaxBytes = maxUploadMegabytes * 1024 * 1024;
+export const eventImageSizeMessage = `Choose an image no larger than ${maxUploadMegabytes} MB.`;
 const maxInputPixels = 24_000_000;
 const maxOutputSide = 2400;
 const pngSignature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
@@ -26,7 +27,7 @@ function sourceFormat(bytes: Buffer) {
 
 export async function prepareEventImage(bytes: Buffer) {
   if (bytes.length > eventImageMaxBytes) {
-    throw new EventImageError("image_too_large", `Choose an image no larger than ${maxUploadMegabytes} MB.`);
+    throw new EventImageError("image_too_large", eventImageSizeMessage);
   }
 
   const format = sourceFormat(bytes);
