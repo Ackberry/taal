@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import { Blob, Buffer } from "node:buffer";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import process from "node:process";
 import test from "node:test";
 import { initializeApp } from "firebase-admin/app";
-import { getFirestore } from "firebase-admin/firestore";
+import { getFirestore, Timestamp } from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
 import sharp from "sharp";
 import { appOrigin, signIn } from "./emulator-session.mjs";
@@ -34,6 +34,24 @@ function upload(event, account, kind, bytes, alt, origin) {
 
 function remove(event, account, imageId) {
   return mediaRequest(event, account, { method: "DELETE", query: `?imageId=${imageId}` });
+}
+
+function readEvent(event, account, suffix = "") {
+  return fetch(`${appOrigin}/api/events/${event.id}${suffix}`, { headers: account ? { cookie: account.cookie } : {} });
+}
+
+async function addMember(event, account, rsvpStatus) {
+  const id = createHash("sha256").update(account.uid).digest("hex");
+  const member = event.collection("participants").doc(id);
+  await member.create({
+    uid: account.uid,
+    membershipStatus: "active",
+    rsvpStatus,
+    blockedAt: null,
+    waitlistPosition: rsvpStatus === "waitlisted" ? 1 : null,
+    joinedAt: Timestamp.now(),
+  });
+  return member;
 }
 
 async function expectJson(response, status) {
@@ -109,6 +127,8 @@ test("invalid replacements preserve the saved photo and a valid replacement swit
   const [savedBytes] = await bucket.file(current.objectPath).download();
   assert.equal((await sharp(savedBytes).metadata()).format, "webp");
   assert.notDeepEqual(savedBytes, originalBytes);
+  assert.equal((await readEvent(event, host, `/media/${first.id}`)).status, 404);
+  assert.equal((await readEvent(event, host, `/media/${second.id}`)).status, 200);
   const audit = await event.collection("auditEntries").get();
   assert.equal(audit.size, 2);
   assert.ok(audit.docs.every((entry) => entry.get("action") === "event_details_updated" && entry.get("actorUid") === host.uid));
@@ -132,6 +152,7 @@ test("reference images are independent and only their event owner can remove the
   const remaining = await event.collection("media").get();
   assert.deepEqual(remaining.docs.map((doc) => doc.id), [second.id]);
   assert.equal((await bucket.file(objectPath).exists())[0], false);
+  assert.equal((await readEvent(event, host, `/media/${first.id}`)).status, 404);
   assert.equal((await event.collection("auditEntries").get()).size, 3);
 });
 
@@ -147,4 +168,60 @@ test("concurrent photo replacements leave one current storage object", async (t)
   assert.ok(results.some(({ id }) => photo.id === id));
   assert.deepEqual(stored.map((file) => file.name), [photo.objectPath]);
   assert.equal((await event.collection("auditEntries").get()).size, 2);
+});
+
+test("event views and direct image requests enforce current photo and reference visibility", async (t) => {
+  const [host, confirmed, waitlisted, member, outsider] = await Promise.all(Array.from({ length: 5 }, () => signIn()));
+  const [event, otherEvent] = await Promise.all([createEvent(host, t), createEvent(host, t)]);
+  const [confirmedEntry, waitlistedEntry] = await Promise.all([
+    addMember(event, confirmed, "confirmed"), addMember(event, waitlisted, "waitlisted"), addMember(event, member, "none"),
+  ]);
+  const bytes = await sampleImage("#369");
+  const photo = await expectJson(await upload(event, host, "photo", bytes, "Banner"), 201);
+  const reference = await expectJson(await upload(event, host, "reference", bytes, "Private entrance"), 201);
+  const photoUrl = `/media/${photo.id}`;
+  const referenceUrl = `/media/${reference.id}`;
+
+  for (const viewer of [host, confirmed]) {
+    const view = await expectJson(await readEvent(event, viewer), 200);
+    assert.deepEqual(view.photo, photo);
+    assert.deepEqual(view.details.referenceImages, [reference]);
+    for (const url of [photoUrl, referenceUrl]) {
+      const image = await readEvent(event, viewer, url);
+      assert.equal(image.status, 200);
+      assert.equal(image.headers.get("content-type"), "image/webp");
+      assert.equal(image.headers.get("cache-control"), "private, no-store");
+      assert.equal(image.headers.get("cross-origin-resource-policy"), "same-origin");
+      assert.equal((await sharp(Buffer.from(await image.arrayBuffer())).metadata()).format, "webp");
+    }
+  }
+
+  for (const [viewer, rsvpStatus] of [[waitlisted, "waitlisted"], [member, "none"]]) {
+    assert.deepEqual(await expectJson(await readEvent(event, viewer), 200), {
+      name: "Test event", role: "guest", rsvpStatus, photo,
+    });
+    assert.equal((await readEvent(event, viewer, photoUrl)).status, 200);
+    assert.equal((await readEvent(event, viewer, referenceUrl)).status, 404);
+  }
+  for (const url of [photoUrl, referenceUrl]) {
+    assert.equal((await readEvent(event, null, url)).status, 401);
+    assert.equal((await readEvent(event, outsider, url)).status, 404);
+    assert.equal((await readEvent(otherEvent, host, url)).status, 404);
+  }
+
+  await waitlistedEntry.update({ rsvpStatus: "confirmed", waitlistPosition: null });
+  assert.equal((await readEvent(event, waitlisted, referenceUrl)).status, 200);
+  const reduction = await fetch(`${appOrigin}/api/host/events/${event.id}/capacity`, {
+    method: "PATCH",
+    headers: { origin: appOrigin, cookie: host.cookie, "content-type": "application/json" },
+    body: JSON.stringify({ capacity: 1, removeParticipantIds: [confirmedEntry.id] }),
+  });
+  assert.equal((await expectJson(reduction, 200)).removedCount, 1);
+  assert.equal((await readEvent(event, confirmed, referenceUrl)).status, 404);
+  assert.equal((await readEvent(event, confirmed, photoUrl)).status, 404);
+
+  // Model cancellation while the guest cancellation endpoint is still pending.
+  await waitlistedEntry.update({ membershipStatus: "canceled", rsvpStatus: "none" });
+  assert.equal((await readEvent(event, waitlisted, referenceUrl)).status, 404);
+  assert.equal((await readEvent(event, waitlisted, photoUrl)).status, 404);
 });

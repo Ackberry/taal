@@ -50,7 +50,13 @@ For live media, set the server-only `FIREBASE_STORAGE_BUCKET` to the name of the
 
 Errors return `{ code, message }`. Expect `400` for invalid input, `401` for a missing or invalid session, `403` for the wrong origin, `404` for unavailable media or a non-owner, `413` for an oversized image, `415` for a non-multipart upload, and `503` when media editing is unavailable. Responses use `Cache-Control: no-store`.
 
-With Next.js and all three Firebase emulators running, run `npm run test:host-event-media` to exercise the host mutation API.
+With Next.js and all three Firebase emulators running, run `npm run test:host-event-media` to exercise media uploads, removals, and viewer access.
+
+### Event image reads
+
+`GET /api/events/{eventId}/media/{imageId}` returns a WebP to a verified viewer with current access. Owners and active event members can read the event photo. Reference images require ownership or a current confirmed RSVP. Taal does not yet publish event listings. When listings are added, their banners must follow the listing’s visibility rules. The image response uses `Cache-Control: private, no-store` and returns `401` for a missing session, `404` for unavailable or inaccessible images, and `503` when media is unavailable.
+
+The event view adds a `photo` summary when a photo is set. For owners and confirmed guests, `details.referenceImages` lists any reference image summaries. Each summary contains `{ id, kind, alt }`. The browser requests image bytes from the route above.
 
 ## Auth interface
 

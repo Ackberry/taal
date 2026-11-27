@@ -16,6 +16,10 @@ export type EventImageRecord = EventImageSummary & {
 export const eventImageAltMaxLength = 200;
 export const eventPhotoDocumentId = "photo";
 
+export function eventImageSummary({ id, kind, alt }: EventImageRecord): EventImageSummary {
+  return { id, kind, alt };
+}
+
 export function isEventImageId(value: unknown): value is string {
   return typeof value === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(value);
 }
