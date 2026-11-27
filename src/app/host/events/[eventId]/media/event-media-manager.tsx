@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition, type FormEvent } from "react";
 import EventMediaImage from "@/app/event-media-image";
-import { eventImageAltMaxLength, type EventImageKind, type EventImageSummary } from "@/lib/events/event-media-record";
+import { eventImageAltMaxLength, eventImageLimit, type EventImageKind, type EventImageSummary } from "@/lib/events/event-media-record";
 
 type MediaAction = EventImageKind | "remove";
 type Feedback = { action: MediaAction; message: string; error?: boolean };
@@ -19,6 +19,8 @@ export default function EventMediaManager({ eventId, photo, references }: {
   const [action, setAction] = useState<MediaAction | null>(null);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const pending = action !== null || refreshing;
+  const imageCount = references.length + (photo ? 1 : 0);
+  const atLimit = imageCount >= eventImageLimit;
   const endpoint = `/api/host/events/${eventId}/media`;
 
   async function changeMedia(nextAction: MediaAction, url: string, options: RequestInit, success: string, form?: HTMLFormElement) {
@@ -30,7 +32,7 @@ export default function EventMediaManager({ eventId, photo, references }: {
       if (!response.ok) {
         const result = await response.json().catch(() => null);
         setFeedback({ action: nextAction, message: result?.message ?? "Couldn’t update event images.", error: true });
-        if (response.status === 404) startRefresh(() => router.refresh());
+        if (response.status === 404 || response.status === 409) startRefresh(() => router.refresh());
         return;
       }
 
@@ -56,11 +58,16 @@ export default function EventMediaManager({ eventId, photo, references }: {
 
   return (
     <>
+      <p className="invite-meta">
+        {imageCount} of {eventImageLimit} images. {atLimit
+          ? "Remove a reference image before adding another."
+          : "The event photo counts toward the limit."}
+      </p>
       <section className="stack" aria-labelledby="event-photo-heading">
         <h2 id="event-photo-heading">Event photo</h2>
         {photo && <EventMediaImage eventId={eventId} image={photo} eager />}
         <ImageUploadForm kind="photo" label={photo ? "Replace event photo" : "Add event photo"}
-          pending={pending} uploading={action === "photo"} onSubmit={upload} />
+          disabled={pending || (atLimit && !photo)} uploading={action === "photo"} onSubmit={upload} />
         <MediaFeedback feedback={feedback?.action === "photo" ? feedback : null} />
       </section>
 
@@ -85,7 +92,7 @@ export default function EventMediaManager({ eventId, photo, references }: {
         <div aria-busy={action === "remove"}>
           <MediaFeedback feedback={feedback?.action === "remove" ? feedback : null} />
         </div>
-        <ImageUploadForm kind="reference" label="Add reference image" pending={pending}
+        <ImageUploadForm kind="reference" label="Add reference image" disabled={pending || atLimit}
           uploading={action === "reference"} onSubmit={upload} />
         <MediaFeedback feedback={feedback?.action === "reference" ? feedback : null} />
       </section>
@@ -93,17 +100,17 @@ export default function EventMediaManager({ eventId, photo, references }: {
   );
 }
 
-function ImageUploadForm({ kind, label, pending, uploading, onSubmit }: {
+function ImageUploadForm({ kind, label, disabled, uploading, onSubmit }: {
   kind: EventImageKind;
   label: string;
-  pending: boolean;
+  disabled: boolean;
   uploading: boolean;
   onSubmit: (event: FormEvent<HTMLFormElement>, kind: EventImageKind) => void;
 }) {
   return (
     <form className="stack invite-panel event-image-upload" method="post" encType="multipart/form-data"
       onSubmit={(event) => onSubmit(event, kind)}>
-      <fieldset className="stack invite-expiration" disabled={pending}>
+      <fieldset className="stack invite-expiration" disabled={disabled}>
         <label htmlFor={`${kind}-file`}>{kind === "photo" ? "Event photo file" : "Reference image file"}</label>
         <input id={`${kind}-file`} name="image" type="file" required
           accept="image/jpeg,image/png,image/webp" aria-describedby={`${kind}-limits`} />
@@ -111,7 +118,7 @@ function ImageUploadForm({ kind, label, pending, uploading, onSubmit }: {
         <label htmlFor={`${kind}-alt`}>Image description (optional)</label>
         <input id={`${kind}-alt`} name="alt" type="text" maxLength={eventImageAltMaxLength} />
       </fieldset>
-      <button className="button" type="submit" disabled={pending}>{uploading ? "Uploading…" : label}</button>
+      <button className="button" type="submit" disabled={disabled}>{uploading ? "Uploading…" : label}</button>
     </form>
   );
 }

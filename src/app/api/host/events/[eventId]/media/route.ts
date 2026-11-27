@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentSession } from "@/lib/auth/session";
 import { EventImageError } from "@/lib/events/event-image";
 import { isEventImageId } from "@/lib/events/event-media-record";
-import { HostEventMedia } from "@/lib/events/host-event-media";
+import { EventImageLimitError, HostEventMedia } from "@/lib/events/host-event-media";
 import { checkSameOrigin } from "@/lib/http/same-origin";
 import { EventMediaInputError, readEventImageUpload } from "./read-upload";
 
@@ -45,6 +45,7 @@ async function changeMedia(request: Request, { params }: RouteContext<"/api/host
     if (error instanceof EventImageError) {
       return mediaError(error.code === "image_too_large" ? 413 : 400, error.code, error.message);
     }
+    if (error instanceof EventImageLimitError) return mediaError(409, "image_limit_reached", error.message);
     console.error("Taal could not update event media.");
     return mediaError(503, "media_unavailable", "Couldn’t update event images. Try again later.");
   }

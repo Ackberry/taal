@@ -3,7 +3,8 @@ import "server-only";
 import { getAuth } from "firebase-admin/auth";
 import { getFirestore, Timestamp } from "firebase-admin/firestore";
 import { getFirebaseAdminApp } from "@/lib/firebase/admin";
-import { promoteWaitlistedGuests, readEventAttendance, runAttendanceTransaction } from "./event-attendance";
+import { runFirestoreWriteTransaction } from "@/lib/firebase/firestore-transaction";
+import { promoteWaitlistedGuests, readEventAttendance } from "./event-attendance";
 import { isEventId, type EventRecord } from "./event-record";
 import type { CapacityChange, HostCapacityView } from "./host-capacity-input";
 
@@ -51,7 +52,7 @@ export class HostEventCapacity {
     if (!isEventId(eventId)) return null;
 
     const eventRef = this.db.collection("events").doc(eventId);
-    return runAttendanceTransaction(this.db, async (transaction) => {
+    return runFirestoreWriteTransaction(this.db, async (transaction) => {
       const event = (await transaction.get(eventRef)).data() as EventRecord | undefined;
       if (event?.ownerUid !== uid) return null;
 

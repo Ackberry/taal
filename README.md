@@ -46,11 +46,11 @@ For live media, set the server-only `FIREBASE_STORAGE_BUCKET` to the name of the
 
 From `/host/events`, use **Manage images** to open the owner-only image editor. Upload an event photo, add or remove private reference images, and optionally provide descriptions that serve as alt text. On the event page, the photo is visible to active members and reference images are shown to confirmed guests.
 
-`POST /api/host/events/{eventId}/media` requires the event owner’s verified session, the app’s origin, and `multipart/form-data`. Send `kind` as `photo` to add or replace the event photo or `reference` to add a reference image. Send one `image` file (JPEG, PNG, or still WebP, at most 3 MB) and an optional `alt` description of up to 200 characters. Success returns `201` with `{ id, kind, alt }`. Storage paths stay on the server. Failed validation leaves saved images intact.
+`POST /api/host/events/{eventId}/media` requires the event owner’s verified session, the app’s origin, and `multipart/form-data`. Send `kind` as `photo` to add or replace the event photo or `reference` to add a reference image. Each event can have up to five images total. Replacing the photo uses its existing slot. Send one `image` file (JPEG, PNG, or still WebP, at most 3 MB) and an optional `alt` description of up to 200 characters. Success returns `201` with `{ id, kind, alt }`. Storage paths stay on the server. Failed validation leaves saved images intact.
 
 `DELETE /api/host/events/{eventId}/media?imageId={id}` requires the same session and origin. It removes a reference image and returns `204`. The event photo is replaced with `POST`. Image edits update the Firestore media record and save an audit entry together. Detached objects are deleted after the edit commits. Storage deletion failures or an uncertain Firestore commit can leave a private object for later cleanup.
 
-Errors return `{ code, message }`. Expect `400` for invalid input, `401` for a missing or invalid session, `403` for the wrong origin, `404` for unavailable media or a non-owner, `413` for an oversized image, `415` for a non-multipart upload, and `503` when media editing is unavailable. Responses use `Cache-Control: no-store`.
+Errors return `{ code, message }`. Expect `400` for invalid input, `401` for a missing or invalid session, `403` for the wrong origin, `404` for unavailable media or a non-owner, `409` with `image_limit_reached` when the event is full, `413` for an oversized image, `415` for a non-multipart upload, and `503` when media editing is unavailable. Responses use `Cache-Control: no-store`.
 
 With Next.js and all three Firebase emulators running, run `npm run test:host-event-media` to exercise media uploads, removals, and viewer access.
 

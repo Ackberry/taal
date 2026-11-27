@@ -14,6 +14,7 @@ export type EventImageRecord = EventImageSummary & {
 };
 
 export const eventImageAltMaxLength = 200;
+export const eventImageLimit = 5;
 export const eventPhotoDocumentId = "photo";
 
 export function eventImageSummary({ id, kind, alt }: EventImageRecord): EventImageSummary {

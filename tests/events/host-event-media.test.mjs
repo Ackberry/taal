@@ -4,7 +4,7 @@ import { createHash, randomUUID } from "node:crypto";
 import process from "node:process";
 import test from "node:test";
 import { initializeApp } from "firebase-admin/app";
-import { getFirestore, Timestamp } from "firebase-admin/firestore";
+import { FieldValue, getFirestore, Timestamp } from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
 import sharp from "sharp";
 import { appOrigin, signIn } from "./emulator-session.mjs";
@@ -180,6 +180,61 @@ test("concurrent photo replacements leave one current storage object", async (t)
   assert.ok(results.some(({ id }) => photo.id === id));
   assert.deepEqual(stored.map((file) => file.name), [photo.objectPath]);
   assert.equal((await event.collection("auditEntries").get()).size, 2);
+});
+
+test("the fifth slot is shared by photo and references, and concurrent uploads cannot exceed it", async (t) => {
+  const host = await signIn();
+  const event = await createEvent(host, t);
+  const bytes = await sampleImage("#369");
+  const photo = await expectJson(await upload(event, host, "photo", bytes), 201);
+  for (let index = 0; index < 3; index++) {
+    await expectJson(await upload(event, host, "reference", bytes), 201);
+  }
+
+  const attempts = await Promise.all([
+    upload(event, host, "reference", bytes, "First"), upload(event, host, "reference", bytes, "Second"),
+  ]);
+  assert.deepEqual(attempts.map(({ status }) => status).sort(), [201, 409]);
+  const blocked = await expectJson(attempts.find(({ status }) => status === 409), 409);
+  assert.equal(blocked.code, "image_limit_reached");
+  assert.equal((await event.get()).get("mediaCount"), 5);
+  assert.equal((await event.collection("media").get()).size, 5);
+  assert.equal((await bucket.getFiles({ prefix: `events/${event.id}/` }))[0].length, 5);
+  assert.equal((await event.collection("auditEntries").get()).size, 5);
+
+  const editor = await page(`/host/events/${event.id}/media`, host);
+  assert.equal(editor.status, 200);
+  const html = await editor.text();
+  assert.match(html, /5<!-- --> of <!-- -->5<!-- --> images/);
+  assert.match(html, /<button[^>]* disabled=""[^>]*>Add reference image<\/button>/);
+  assert.match(html, /<button class="button" type="submit">Replace event photo<\/button>/);
+
+  const newPhoto = await expectJson(await upload(event, host, "photo", bytes), 201);
+  assert.notEqual(newPhoto.id, photo.id);
+  assert.equal((await event.get()).get("mediaCount"), 5);
+  const added = await expectJson(attempts.find(({ status }) => status === 201), 201);
+  assert.equal((await remove(event, host, added.id)).status, 204);
+  assert.equal((await event.get()).get("mediaCount"), 4);
+  await expectJson(await upload(event, host, "reference", bytes), 201);
+  assert.equal((await event.collection("media").get()).size, 5);
+});
+
+test("an event with five reference images needs a free slot before its first photo", async (t) => {
+  const host = await signIn();
+  const event = await createEvent(host, t);
+  const bytes = await sampleImage("#369");
+  const first = await expectJson(await upload(event, host, "reference", bytes), 201);
+  for (let index = 0; index < 4; index++) {
+    await expectJson(await upload(event, host, "reference", bytes), 201);
+  }
+  // Existing media records can predate the stored count.
+  await event.update({ mediaCount: FieldValue.delete() });
+
+  assert.equal((await expectJson(await upload(event, host, "photo", bytes), 409)).code, "image_limit_reached");
+  assert.equal((await remove(event, host, first.id)).status, 204);
+  assert.equal((await event.get()).get("mediaCount"), 4);
+  await expectJson(await upload(event, host, "photo", bytes), 201);
+  assert.equal((await event.get()).get("mediaCount"), 5);
 });
 
 test("event views and direct image requests enforce current photo and reference visibility", async (t) => {

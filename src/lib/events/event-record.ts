@@ -9,6 +9,7 @@ export type EventRecord = {
   rsvpSequence?: number;
   creationFingerprint?: string;
   privateDetails?: PrivateEventDetails;
+  mediaCount?: number;
 };
 
 export function selectPrivateEventDetails(event: EventRecord): PrivateEventDetails {

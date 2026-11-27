@@ -37,6 +37,7 @@
 
 - When creating an event with a scheduled start or changing its start, choose a time after the current server time.
 - The host and attendees with an event editing grant can configure the event name, date and time, address, event photo, and description. They can also attach additional reference images, such as outfit examples, an entrance photo, or a flyer.
+- An event can have up to five images total, including its event photo. Replacing the event photo uses the same slot.
 - Hosts can optionally add a theme or dress code, last entry time, student or photo ID requirements, and a plus-one policy. They can also add directions, the entrance to use, shuttle or rideshare drop-off information, step-free access information, and a contact for event or accessibility questions. Which event filters to support is still open.
 - After a successful song request, show a confirmation with the event address and other details the host has provided. Show “TBA” for details the host has yet to announce, including the address.
 - Email is the primary channel for guest communications. Email confirmed guests who have an email address when their RSVP is confirmed and when attendee-facing details change, such as the date, time, or address, including when a detail marked “TBA” is announced. Use SMS only for authentication and notifying guests who signed up by SMS when they are approved from the waitlist.
