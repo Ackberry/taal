@@ -17,6 +17,7 @@
     "test:event-details": "node --test tests/events/host-event-details.test.mjs",
     "test:event-schedule": "node --test tests/events/host-event-schedule.test.mjs",
     "test:event-capacity": "node --test tests/events/host-event-capacity.test.mjs",
+    "test:event-images": "node --conditions=react-server --test tests/media/event-image.test.mjs",
     "test:invites": "node --test tests/events/host-invites.test.mjs",
     "seed:test-event": "node scripts/seed-test-event.mjs",
     "test:redemption": "node --test tests/events/invite-redemption.test.mjs",
@@ -29,7 +30,8 @@
     "next": "^16.4.6",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
-    "server-only": "^0.0.1"
+    "server-only": "^0.0.1",
+    "sharp": "0.35.5"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
