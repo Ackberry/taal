@@ -36,6 +36,30 @@ Open `http://localhost:3000`. The emulator supplies a simulated Google sign-in a
 
 For live testing, copy `.env.example` to `.env.local` and fill in the Firebase Web app configuration. Authenticate the server with Application Default Credentials for the Firebase project or provide `FIREBASE_SERVICE_ACCOUNT_JSON` as a private server variable. Set `TAAL_APP_ORIGIN` to the origin users actually visit. Initialize the default Firestore database in production mode and apply the server-only rules in `firestore.rules`. Give the server credentials access to Firebase Auth and Firestore. Enable Firestore TTL on `authSessions.expiresAt` to clean up expired session records. Add the deployed domain to Firebase Authentication’s authorized domains before testing Google and real SMS. [Firebase Admin setup](https://firebase.google.com/docs/admin/setup) · [Firestore TTL](https://firebase.google.com/docs/firestore/ttl) · [Firebase web phone sign-in](https://firebase.google.com/docs/auth/web/phone-auth)
 
+## Event image storage
+
+For local event image work, add `storage` to the emulator startup command and set `FIREBASE_STORAGE_EMULATOR_HOST=127.0.0.1:9199` when starting Next.js. The app uses the demo project’s local bucket. Run `npm run test:event-images` for image validation and `npm run test:event-image-storage` against the Storage emulator for upload, retrieval, and deletion.
+
+For live media, set the server-only `FIREBASE_STORAGE_BUCKET` to the name of the private Firebase bucket. Apply `storage.rules` to that bucket and give the server service account permission to create, read, and delete objects. Enable uniform bucket-level access and enforce public access prevention. Image objects are written without download tokens or public URLs. [Storage emulator](https://firebase.google.com/docs/emulator-suite/connect_storage) · [Public access prevention](https://cloud.google.com/storage/docs/public-access-prevention) · [Uniform bucket-level access](https://cloud.google.com/storage/docs/uniform-bucket-level-access)
+
+### Host image API
+
+From `/host/events`, use **Manage images** to open the owner-only image editor. Upload an event photo, add or remove private reference images, and optionally provide descriptions that serve as alt text. On the event page, the photo is visible to active members and reference images are shown to confirmed guests.
+
+`POST /api/host/events/{eventId}/media` requires the event owner’s verified session, the app’s origin, and `multipart/form-data`. Send `kind` as `photo` to add or replace the event photo or `reference` to add a reference image. Each event can have up to five images total. Replacing the photo uses its existing slot. Send one `image` file (JPEG, PNG, or still WebP, at most 3 MB) and an optional `alt` description of up to 200 characters. Success returns `201` with `{ id, kind, alt }`. Storage paths stay on the server. Failed validation leaves saved images intact.
+
+`DELETE /api/host/events/{eventId}/media?imageId={id}` requires the same session and origin. It removes a reference image and returns `204`. The event photo is replaced with `POST`. Image edits update the Firestore media record and save an audit entry together. Detached objects are deleted after the edit commits. Storage deletion failures or an uncertain Firestore commit can leave a private object for later cleanup.
+
+Errors return `{ code, message }`. Expect `400` for invalid input, `401` for a missing or invalid session, `403` for the wrong origin, `404` for unavailable media or a non-owner, `409` with `image_limit_reached` when the event is full, `413` for an oversized image, `415` for a non-multipart upload, and `503` when media editing is unavailable. Responses use `Cache-Control: no-store`.
+
+With Next.js and all three Firebase emulators running, run `npm run test:host-event-media` to exercise media uploads, removals, and viewer access.
+
+### Event image reads
+
+`GET /api/events/{eventId}/media/{imageId}` returns a WebP to a verified viewer with current access. Owners and active event members can read the event photo. Reference images require ownership or a current confirmed RSVP. Taal does not yet publish event listings. When listings are added, their banners must follow the listing’s visibility rules. The image response uses `Cache-Control: private, no-store` and returns `401` for a missing session, `404` for unavailable or inaccessible images, and `503` when media is unavailable.
+
+The event view adds a `photo` summary when a photo is set. For owners and confirmed guests, `details.referenceImages` lists any reference image summaries. Each summary contains `{ id, kind, alt }`. The browser requests image bytes from the route above.
+
 ## Auth interface
 
 - `POST /api/session` accepts JSON with an `idToken` from Firebase sign-in. Success returns `204` and sets an HTTP-only session cookie. On protected requests the server verifies the Firebase credential and checks for an active Firestore session record.

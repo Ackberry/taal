@@ -43,6 +43,9 @@ export default async function HostEventsPage() {
                   <Link href={`/host/events/${eventId}/capacity`} aria-label={`Edit RSVP capacity for ${name}`}>
                     Edit capacity
                   </Link>
+                  <Link href={`/host/events/${eventId}/media`} aria-label={`Manage images for ${name}`}>
+                    Manage images
+                  </Link>
                   <Link href={`/host/events/${eventId}/invites`} aria-label={`Manage guest invites for ${name}`}>
                     Manage guest invites
                   </Link>

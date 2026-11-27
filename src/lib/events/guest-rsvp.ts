@@ -2,7 +2,8 @@ import "server-only";
 
 import { getFirestore } from "firebase-admin/firestore";
 import { getFirebaseAdminApp } from "@/lib/firebase/admin";
-import { promoteWaitlistedGuests, readEventAttendance, runAttendanceTransaction } from "./event-attendance";
+import { runFirestoreWriteTransaction } from "@/lib/firebase/firestore-transaction";
+import { promoteWaitlistedGuests, readEventAttendance } from "./event-attendance";
 import { eventAccountKey, isActiveEventGuest, type EventParticipant } from "./event-participant";
 import { isEventId, type EventRecord } from "./event-record";
 
@@ -18,7 +19,7 @@ export class GuestRsvp {
     const participants = eventRef.collection("participants");
     const guestRef = participants.doc(eventAccountKey(uid));
 
-    return runAttendanceTransaction(this.db, async (transaction) => {
+    return runFirestoreWriteTransaction(this.db, async (transaction) => {
       const [eventSnapshot, guestSnapshot] = await transaction.getAll(eventRef, guestRef);
       const event = eventSnapshot.data() as EventRecord | undefined;
       const guest = guestSnapshot.data() as EventParticipant | undefined;
